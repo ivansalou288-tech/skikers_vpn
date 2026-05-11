@@ -75,6 +75,20 @@ async def create_tables():
 # Создание фабрики асинхронных сессий
 AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
+# Асинхронная функция для получения info
+async def get_info(info_id: int = 1):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Info).filter(Info.id == info_id))
+        info = result.scalar_one_or_none()
+        return info.value if info else "Информация не найдена"
+
+# Асинхронная функция для получения контактов
+async def get_contact(contact_id: int = 1):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Contacts).filter(Contacts.id == contact_id))
+        contact = result.scalar_one_or_none()
+        return contact.value if contact else "Контакты не найдены"
+
 # Асинхронная функция для создания/обновления info
 async def create_or_update_info(value: str, info_id: int = 1):
     async with AsyncSessionLocal() as session:
