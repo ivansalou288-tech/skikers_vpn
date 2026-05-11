@@ -940,7 +940,9 @@ async def trial_period_callback(callback: types.CallbackQuery):
         return
     
     # Добавляем пользователя в CantFree (локально)
+    print(f"[TRIAL] Adding user {user_tg_id} to CantFree")
     add_result = await add_to_cantfree_local(user_tg_id, user_username)
+    print(f"[TRIAL] Add to CantFree result: {add_result}")
     
     if add_result.get("success"):
         # Создаем пробную подписку на 3 дня через API
@@ -990,6 +992,7 @@ async def trial_period_callback(callback: types.CallbackQuery):
             )
             print(f"[TRIAL] Exception adding trial client: {e}")
     else:
+        print(f"[TRIAL] Failed to add user to CantFree: {add_result}")
         await callback.message.answer(
             "<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Ошибка активации</b>\n\n"
             "Не удалось активировать пробный период. Пожалуйста, попробуйте позже.",
