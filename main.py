@@ -918,9 +918,11 @@ async def trial_period_callback(callback: types.CallbackQuery):
     
     user_tg_id = callback.from_user.id
     user_username = callback.from_user.username
+    print(f"[TRIAL] Trial period requested by user {user_tg_id} (@{user_username})")
     
     # Проверяем еще раз что пользователя нет в CantFree (локально)
     cantfree_result = await check_cantfree_local(user_tg_id)
+    print(f"[TRIAL] CantFree check result: {cantfree_result}")
     
     if cantfree_result.get("exists") == True:
         # Пользователь уже использовал пробный период
@@ -949,9 +951,12 @@ async def trial_period_callback(callback: types.CallbackQuery):
         # Добавляем клиента в систему с пробной подпиской через API
         try:
             api_date = end_time.strftime("%d.%m.%Y")
+            print(f"[TRIAL] Creating trial client for user {user_tg_id} with expiry {api_date}")
             client_result = add_client(21, f"trial_user_{user_tg_id}", user_tg_id, api_date)
+            print(f"[TRIAL] Client creation result: {client_result}")
             
-            await callback.message.answer(
+            if client_result and client_result.get('success'):
+                await callback.message.answer(
                 "<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Пробный период активирован!</b>\n\n"
                 f"🎁 <b>Пробный период на 3 дня</b>\n"
                 f"📅 Действует до: {end_date_str}\n"
@@ -969,6 +974,13 @@ async def trial_period_callback(callback: types.CallbackQuery):
                 ),
                 parse_mode=ParseMode.HTML
             )
+            else:
+                await callback.message.answer(
+                    "<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Ошибка активации</b>\n\n"
+                    f"Не удалось создать пробную подписку. Ошибка: {client_result.get('error', 'Unknown error')}",
+                    parse_mode=ParseMode.HTML
+                )
+                print(f"[TRIAL] Client creation failed: {client_result}")
             
         except Exception as e:
             await callback.message.answer(
@@ -976,7 +988,7 @@ async def trial_period_callback(callback: types.CallbackQuery):
                 "Не удалось создать пробную подписку. Пожалуйста, обратитесь в поддержку.",
                 parse_mode=ParseMode.HTML
             )
-            print(f"Error adding trial client: {e}")
+            print(f"[TRIAL] Exception adding trial client: {e}")
     else:
         await callback.message.answer(
             "<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Ошибка активации</b>\n\n"
