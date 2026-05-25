@@ -38,64 +38,79 @@ def get_clients():
         f"https://{PANEL_DOMAIN}:{PANEL_PORT}/{PANEL_PATH}/login",  # Явный путь
     ]
     
-    print(f"[DEBUG] Базовый URL: {BASE_URL}")
-    print(f"[DEBUG] PANEL_DOMAIN: {PANEL_DOMAIN}, PANEL_PORT: {PANEL_PORT}")
-    print(f"[DEBUG] Пробуем пути логина: {login_urls}")
-    print(f"[DEBUG] Данные логина: {admin_login}")
+    print(f"\n[get_clients] Начинаем авторизацию...")
+    print(f"[get_clients] Базовый URL: {BASE_URL}")
+    print(f"[get_clients] PANEL_DOMAIN: {PANEL_DOMAIN}, PANEL_PORT: {PANEL_PORT}")
+    print(f"[get_clients] Пробуем пути: {login_urls}")
     
     # Create session and login
     session = requests.Session()
+    session.verify = False
     login_response = None
     successful_url = None
     
     try:
         for login_url in login_urls:
-            print(f"[DEBUG] Пытаемся логин: {login_url}")
-            login_response = session.post(login_url, json=admin_login, verify=False, timeout=10)
+            print(f"\n[get_clients] → Попытка логина: {login_url}")
+            login_response = session.post(
+                login_url, 
+                json=admin_login, 
+                verify=False, 
+                timeout=10,
+                allow_redirects=True
+            )
             
-            print(f"[DEBUG]   Статус: {login_response.status_code}")
-            print(f"[DEBUG]   Ответ: {login_response.text[:300]}")
+            print(f"[get_clients]   Статус: {login_response.status_code}")
+            print(f"[get_clients]   Ответ (первые 300 chars): {login_response.text[:300]}")
             
             if login_response.status_code == 200:
-                print(f"[DEBUG] ✓ Успешный логин на: {login_url}")
-                successful_url = login_url
-                break
+                print(f"[get_clients]   ✓ Статус 200 - пытаемся распарсить JSON...")
+                try:
+                    result = login_response.json()
+                    print(f"[get_clients]   JSON распарсен: {str(result)[:200]}")
+                    if result.get('success'):
+                        print(f"[get_clients] ✓✓✓ ЛОГИН УСПЕШЕН на {login_url}")
+                        successful_url = login_url
+                        break
+                    else:
+                        print(f"[get_clients]   ✗ JSON говорит success=False")
+                except Exception as e:
+                    print(f"[get_clients]   ✗ Ошибка парсинга JSON: {e}")
             elif login_response.status_code == 403:
-                print(f"[DEBUG] ✗ 403 Forbidden на: {login_url}")
-                continue
+                print(f"[get_clients]   ✗ 403 Forbidden - пробуем следующий путь...")
             else:
-                print(f"[DEBUG] ✗ Ошибка {login_response.status_code} на: {login_url}")
-                continue
+                print(f"[get_clients]   ✗ HTTP {login_response.status_code}")
         
-        if not successful_url or login_response.status_code != 200:
-            print(f"[DEBUG] HTTP error on login: {login_response.status_code if login_response else 'No response'}")
-            return {"error": f"HTTP {login_response.status_code if login_response else '??'} on login"}
+        if not successful_url:
+            print(f"\n[get_clients] ✗✗✗ ОШИБКА: ни один путь логина не сработал!")
+            print(f"[get_clients] Последний статус: {login_response.status_code if login_response else 'None'}")
+            return {"error": f"HTTP {login_response.status_code if login_response else '?'} on login", "details": login_response.text if login_response else "no response"}
             
         login_result = login_response.json()
         if login_result.get('success'):
             # Use the authenticated session to get clients
             api_url = f"{BASE_URL}/panel/api/inbounds/list"
-            print(f"[DEBUG] Getting clients from: {api_url}")
+            print(f"\n[get_clients] Получаем список клиентов: {api_url}")
             
             response = session.get(api_url, verify=False, timeout=10)
             
-            print(f"[DEBUG] Clients response status: {response.status_code}")
-            print(f"[DEBUG] Clients response: {response.text[:500]}")  # Ограничиваем вывод
+            print(f"[get_clients] Статус ответа: {response.status_code}")
+            print(f"[get_clients] Ответ (первые 500 chars): {response.text[:500]}")
             
             if response.status_code != 200:
-                print(f"[DEBUG] HTTP error on get clients: {response.status_code}")
+                print(f"[get_clients] ✗ HTTP ошибка на получении клиентов: {response.status_code}")
                 return {"error": f"HTTP {response.status_code} on get clients"}
                 
             return response.json()
         else:
-            print(f"[DEBUG] Login failed for user: {admn_username}")
-            return {"error": "Login failed"}
+            print(f"[get_clients] ✗ Логин показал success=False")
+            return {"error": "Login success=false"}
             
     except requests.exceptions.RequestException as e:
-        print(f"[DEBUG] Request exception: {e}")
+        print(f"[get_clients] ✗ Request исключение: {e}")
         return {"error": f"Request failed: {str(e)}"}
     except Exception as e:
-        print(f"[DEBUG] Unexpected error: {e}")
+        print(f"[get_clients] ✗ Неожиданное исключение: {e}")
         return {"error": f"Unexpected error: {str(e)}"}
 
 
@@ -303,33 +318,60 @@ def panel_session():
     ]
     
     print(f"[DEBUG panel_session] Пробуем пути логина...")
+    print(f"[DEBUG panel_session] BASE_URL: {BASE_URL}")
+    print(f"[DEBUG panel_session] User: {admn_username}")
     
     for login_url in login_urls:
-        print(f"[DEBUG panel_session] Пытаемся: {login_url}")
+        print(f"\n[DEBUG panel_session] Пытаемся: {login_url}")
         try:
+            # Подготавливаем полный набор заголовков
+            headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            login_data = {"username": admn_username, "password": admn_pass}
+            
+            print(f"[DEBUG panel_session]   Headers: {headers}")
+            print(f"[DEBUG panel_session]   Data: {login_data}")
+            
             login_response = session.post(
                 login_url,
-                json={"username": admn_username, "password": admn_pass},
+                json=login_data,
+                headers=headers,
                 verify=False,
-                timeout=10
+                timeout=10,
+                allow_redirects=True
             )
-            print(f"[DEBUG panel_session]   Статус: {login_response.status_code}")
+            
+            print(f"[DEBUG panel_session]   HTTP Статус: {login_response.status_code}")
+            print(f"[DEBUG panel_session]   Response Headers: {dict(login_response.headers)}")
+            print(f"[DEBUG panel_session]   Response Body (first 500 chars): {login_response.text[:500]}")
+            print(f"[DEBUG panel_session]   Session Cookies: {dict(session.cookies)}")
             
             if login_response.status_code == 200:
                 try:
                     body = login_response.json()
+                    print(f"[DEBUG panel_session]   Parsed JSON: {body}")
                     if body.get("success"):
-                        print(f"[DEBUG panel_session] ✓ Успешный логин!")
+                        print(f"[DEBUG panel_session] ✓✓✓ Успешный логин! ✓✓✓")
                         return session, None
                     else:
-                        print(f"[DEBUG panel_session]   Ошибка в ответе: {body}")
-                except json.JSONDecodeError:
-                    return None, "login invalid json"
+                        print(f"[DEBUG panel_session]   ✗ JSON успех=False: {body}")
+                except json.JSONDecodeError as e:
+                    print(f"[DEBUG panel_session]   ✗ Не смогли распарсить JSON: {e}")
+            elif login_response.status_code == 403:
+                print(f"[DEBUG panel_session]   ✗ 403 Forbidden - проверяем тело ошибки")
+                print(f"[DEBUG panel_session]   Тело ошибки: {login_response.text[:200]}")
+            else:
+                print(f"[DEBUG panel_session]   ✗ HTTP ошибка {login_response.status_code}")
+                
         except Exception as e:
-            print(f"[DEBUG panel_session]   Exception: {e}")
+            print(f"[DEBUG panel_session]   ✗ Exception: {type(e).__name__}: {e}")
             continue
     
-    return None, "login http error - all paths failed"
+    print(f"\n[DEBUG panel_session] ✗✗✗ ВСЕ пути логина не сработали ✗✗✗")
+    return None, "login failed - all paths returned 403 or error"
 
 
 def parse_inbound_settings(inbound):
