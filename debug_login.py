@@ -24,7 +24,8 @@ login_urls = [
 
 login_data = {
     "username": USER,
-    "password": PASSWORD
+    "password": PASSWORD,
+    "twoFactorCode": "123456"
 }
 
 print("="*80)
