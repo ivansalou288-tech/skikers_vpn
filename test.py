@@ -17,9 +17,9 @@ def login():
     admin_login = {
         "username": admn_username,
         "password": admn_pass,
-        "twoFactorCode": "123456"
+        
     }
 
-    response = requests.post(f"{BASE_URL}/login", json=admin_login, verify=False)
+    response = requests.post(f"{BASE_URL}/panel/login", json=admin_login, verify=False)
     return response.json()
 print(login())
