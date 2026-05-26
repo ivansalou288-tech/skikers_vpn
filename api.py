@@ -14,97 +14,41 @@ import secret
 
 admn_username = secret.user
 admn_pass = secret.password
-def login():
+api_token = secret.api_token
 
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
+def get_headers():
+    """Return headers with Bearer token authentication"""
+    return {
+        "Authorization": f"Bearer {api_token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
     }
-
-    response = requests.post(f"{BASE_URL}/login", json=admin_login, verify=False)
-    return response.json()
 
 def get_clients():
-    # First login to get session
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
+    """Get list of clients using Bearer token authentication"""
+    api_url = f"{BASE_URL}/panel/api/inbounds/list"
     
-    # Try multiple login paths
-    login_urls = [
-        f"{BASE_URL}/login",  # С полным путем панели
-        f"https://{PANEL_DOMAIN}:{PANEL_PORT}/login",  # Без префикса пути
-        f"https://{PANEL_DOMAIN}:{PANEL_PORT}/{PANEL_PATH}/login",  # Явный путь
-    ]
-    
-    print(f"\n[get_clients] Начинаем авторизацию...")
-    print(f"[get_clients] Базовый URL: {BASE_URL}")
-    print(f"[get_clients] PANEL_DOMAIN: {PANEL_DOMAIN}, PANEL_PORT: {PANEL_PORT}")
-    print(f"[get_clients] Пробуем пути: {login_urls}")
-    
-    # Create session and login
-    session = requests.Session()
-    session.verify = False
-    login_response = None
-    successful_url = None
+    print(f"\n[get_clients] Получаем список клиентов с API токеном...")
+    print(f"[get_clients] URL: {api_url}")
     
     try:
-        for login_url in login_urls:
-            print(f"\n[get_clients] → Попытка логина: {login_url}")
-            login_response = session.post(
-                login_url, 
-                json=admin_login, 
-                verify=False, 
-                timeout=10,
-                allow_redirects=True
-            )
-            
-            print(f"[get_clients]   Статус: {login_response.status_code}")
-            print(f"[get_clients]   Ответ (первые 300 chars): {login_response.text[:300]}")
-            
-            if login_response.status_code == 200:
-                print(f"[get_clients]   ✓ Статус 200 - пытаемся распарсить JSON...")
-                try:
-                    result = login_response.json()
-                    print(f"[get_clients]   JSON распарсен: {str(result)[:200]}")
-                    if result.get('success'):
-                        print(f"[get_clients] ✓✓✓ ЛОГИН УСПЕШЕН на {login_url}")
-                        successful_url = login_url
-                        break
-                    else:
-                        print(f"[get_clients]   ✗ JSON говорит success=False")
-                except Exception as e:
-                    print(f"[get_clients]   ✗ Ошибка парсинга JSON: {e}")
-            elif login_response.status_code == 403:
-                print(f"[get_clients]   ✗ 403 Forbidden - пробуем следующий путь...")
-            else:
-                print(f"[get_clients]   ✗ HTTP {login_response.status_code}")
+        headers = get_headers()
+        response = requests.get(api_url, headers=headers, verify=False, timeout=10)
         
-        if not successful_url:
-            print(f"\n[get_clients] ✗✗✗ ОШИБКА: ни один путь логина не сработал!")
-            print(f"[get_clients] Последний статус: {login_response.status_code if login_response else 'None'}")
-            return {"error": f"HTTP {login_response.status_code if login_response else '?'} on login", "details": login_response.text if login_response else "no response"}
+        print(f"[get_clients] Статус ответа: {response.status_code}")
+        print(f"[get_clients] Ответ (первые 500 chars): {response.text[:500]}")
+        
+        if response.status_code != 200:
+            print(f"[get_clients] ✗ HTTP ошибка: {response.status_code}")
+            return {"error": f"HTTP {response.status_code} on get clients", "response": response.text}
             
-        login_result = login_response.json()
-        if login_result.get('success'):
-            # Use the authenticated session to get clients
-            api_url = f"{BASE_URL}/panel/api/inbounds/list"
-            print(f"\n[get_clients] Получаем список клиентов: {api_url}")
-            
-            response = session.get(api_url, verify=False, timeout=10)
-            
-            print(f"[get_clients] Статус ответа: {response.status_code}")
-            print(f"[get_clients] Ответ (первые 500 chars): {response.text[:500]}")
-            
-            if response.status_code != 200:
-                print(f"[get_clients] ✗ HTTP ошибка на получении клиентов: {response.status_code}")
-                return {"error": f"HTTP {response.status_code} on get clients"}
-                
-            return response.json()
+        result = response.json()
+        if result.get('success'):
+            print(f"[get_clients] ✓ Успешно получены клиенты")
+            return result
         else:
-            print(f"[get_clients] ✗ Логин показал success=False")
-            return {"error": "Login success=false"}
+            print(f"[get_clients] ✗ API ошибка: {result}")
+            return result
             
     except requests.exceptions.RequestException as e:
         print(f"[get_clients] ✗ Request исключение: {e}")
@@ -139,45 +83,27 @@ def add_inbrouds(name: str, client_name: str, client_id: str):
     "allocate": json.dumps(json.loads("{\"strategy\": \"always\",\"refresh\": 5,\"concurrency\": 3}"))
     }
 
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
-    
-    # Create session and login
-    session = requests.Session()
-    session.verify = False
-    login_response = session.post(f"{BASE_URL}/login", json=admin_login)
-    
-    if login_response.json().get('success'):
-        # Use the authenticated session to add inbound
-            print(data)
-            response = session.post("https://www.ezhqpy.ru/5WKqaFPoxu/panel/api/inbounds/add", json=data)
-            
-            print(f"Status Code: {response.status_code}")
-            print(f"Response Text: {response.text}")
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return {"error": f"HTTP {response.status_code}", "response": response.text}
-    else:
-        return {"error": "Login failed"}
+    try:
+        headers = get_headers()
+        response = requests.post(f"{BASE_URL}/panel/api/inbounds/add", json=data, headers=headers, verify=False)
+        
+        print(data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response Text: {response.text}")
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"HTTP {response.status_code}", "response": response.text}
+    except Exception as e:
+        return {"error": f"Failed to add inbound: {str(e)}"}
 
 def getNewmldsa65():
-    # First login to get session
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
-    
-    # Create session and login
-    session = requests.Session()
-    login_response = session.post(f"{BASE_URL}/login", json=admin_login, verify=False)
-    
-    if login_response.json().get('success'):
-        # Use the authenticated session to get new mldsa65 keys
-        response = session.get(f"{BASE_URL}/panel/api/server/getNewmldsa65", verify=False)
+    """Get new mldsa65 keys using Bearer token authentication"""
+    try:
+        headers = get_headers()
+        response = requests.get(f"{BASE_URL}/panel/api/server/getNewmldsa65", headers=headers, verify=False)
+        
         result = response.json()
         if result.get('success'):
             # Extract generated keys
@@ -189,10 +115,11 @@ def getNewmldsa65():
             }
         else:
             return result
-    else:
-        return {"error": "Login failed"}
+    except Exception as e:
+        return {"error": f"Failed to get mldsa65 keys: {str(e)}"}
 
 def dell_client(inboundId: int, telegramId: int):
+    """Delete client using Bearer token authentication"""
     # Get client info first
     client_info = getSubById(telegramId)
     
@@ -201,21 +128,12 @@ def dell_client(inboundId: int, telegramId: int):
     
     email = client_info['client_info']['email']
     
-    # First login to get session
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
-    
-    # Create session and login
-    session = requests.Session()
-    login_response = session.post(f"{BASE_URL}/login", json=admin_login, verify=False)
-    
-    if login_response.json().get('success'):
-        # Use the authenticated session to delete client
+    try:
+        headers = get_headers()
         enc = quote(str(email), safe="")
-        response = session.post(
+        response = requests.post(
             f"{BASE_URL}/panel/api/inbounds/{inboundId}/delClientByEmail/{enc}",
+            headers=headers,
             verify=False,
         )
         result = response.json()
@@ -223,23 +141,15 @@ def dell_client(inboundId: int, telegramId: int):
             return result
         else:
             return result
-    else:
-        return {"error": "Login failed"}
+    except Exception as e:
+        return {"error": f"Failed to delete client: {str(e)}"}
 
 def getNewX25519Cert():
-    # First login to get session
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
-    
-    # Create session and login
-    session = requests.Session()
-    login_response = session.post(f"{BASE_URL}/login", json=admin_login, verify=False)
-    
-    if login_response.json().get('success'):
-        # Use the authenticated session to get new X25519 certificate
-        response = session.get(f"{BASE_URL}/panel/api/server/getNewX25519Cert", verify=False)
+    """Get new X25519 certificate using Bearer token authentication"""
+    try:
+        headers = get_headers()
+        response = requests.get(f"{BASE_URL}/panel/api/server/getNewX25519Cert", headers=headers, verify=False)
+        
         result = response.json()
         if result.get('success'):
             # Extract generated keys
@@ -251,8 +161,8 @@ def getNewX25519Cert():
             }
         else:
             return result
-    else:
-        return {"error": "Login failed"}
+    except Exception as e:
+        return {"error": f"Failed to get X25519 certificate: {str(e)}"}
 
 
 def getSubById(telegram_id):
@@ -307,71 +217,17 @@ def getSubById(telegram_id):
 
 
 def panel_session():
+    """Create a requests session with Bearer token authentication"""
     session = requests.Session()
     session.verify = False
     
-    # Try multiple login paths
-    login_urls = [
-        f"{BASE_URL}/login",  # С полным путем панели
-        f"https://{PANEL_DOMAIN}:{PANEL_PORT}/login",  # Без префикса пути
-        f"https://{PANEL_DOMAIN}:{PANEL_PORT}/{PANEL_PATH}/login",  # Явный путь
-    ]
+    # Add Authorization header with Bearer token
+    session.headers.update(get_headers())
     
-    print(f"[DEBUG panel_session] Пробуем пути логина...")
-    print(f"[DEBUG panel_session] BASE_URL: {BASE_URL}")
-    print(f"[DEBUG panel_session] User: {admn_username}")
+    print(f"[DEBUG panel_session] Сессия создана с Bearer токеном")
+    print(f"[DEBUG panel_session] Headers: {dict(session.headers)}")
     
-    for login_url in login_urls:
-        print(f"\n[DEBUG panel_session] Пытаемся: {login_url}")
-        try:
-            # Подготавливаем полный набор заголовков
-            headers = {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            
-            login_data = {"username": admn_username, "password": admn_pass}
-            
-            print(f"[DEBUG panel_session]   Headers: {headers}")
-            print(f"[DEBUG panel_session]   Data: {login_data}")
-            
-            login_response = session.post(
-                login_url,
-                json=login_data,
-                headers=headers,
-                verify=False,
-                timeout=10,
-                allow_redirects=True
-            )
-            
-            print(f"[DEBUG panel_session]   HTTP Статус: {login_response.status_code}")
-            print(f"[DEBUG panel_session]   Response Headers: {dict(login_response.headers)}")
-            print(f"[DEBUG panel_session]   Response Body (first 500 chars): {login_response.text[:500]}")
-            print(f"[DEBUG panel_session]   Session Cookies: {dict(session.cookies)}")
-            
-            if login_response.status_code == 200:
-                try:
-                    body = login_response.json()
-                    print(f"[DEBUG panel_session]   Parsed JSON: {body}")
-                    if body.get("success"):
-                        print(f"[DEBUG panel_session] ✓✓✓ Успешный логин! ✓✓✓")
-                        return session, None
-                    else:
-                        print(f"[DEBUG panel_session]   ✗ JSON успех=False: {body}")
-                except json.JSONDecodeError as e:
-                    print(f"[DEBUG panel_session]   ✗ Не смогли распарсить JSON: {e}")
-            elif login_response.status_code == 403:
-                print(f"[DEBUG panel_session]   ✗ 403 Forbidden - проверяем тело ошибки")
-                print(f"[DEBUG panel_session]   Тело ошибки: {login_response.text[:200]}")
-            else:
-                print(f"[DEBUG panel_session]   ✗ HTTP ошибка {login_response.status_code}")
-                
-        except Exception as e:
-            print(f"[DEBUG panel_session]   ✗ Exception: {type(e).__name__}: {e}")
-            continue
-    
-    print(f"\n[DEBUG panel_session] ✗✗✗ ВСЕ пути логина не сработали ✗✗✗")
-    return None, "login failed - all paths returned 403 or error"
+    return session, None
 
 
 def parse_inbound_settings(inbound):
@@ -714,24 +570,11 @@ def add_client(inbound_id: int, username: str, tg_id: int, date: str):
 
 def check_cantfree(tg_id):
     """Проверяет есть ли пользователь в CantFree"""
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
-    
-    # Create session and login
-    session = requests.Session()
-    session.verify = False
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
     try:
-        # Login
-        login_response = session.post(f"{BASE_URL}/login", json=admin_login)
-        if login_response.status_code != 200:
-            return {"error": "Login failed"}
+        headers = get_headers()
         
         # Get CantFree users
-        cantfree_response = session.get(f"{BASE_URL}/cantfree")
+        cantfree_response = requests.get(f"{BASE_URL}/cantfree", headers=headers, verify=False)
         if cantfree_response.status_code == 200:
             cantfree_users = cantfree_response.json()
             
@@ -742,28 +585,15 @@ def check_cantfree(tg_id):
             
             return {"exists": False}
         else:
-            return {"error": "Failed to get CantFree users"}
+            return {"error": f"Failed to get CantFree users: HTTP {cantfree_response.status_code}"}
             
     except Exception as e:
         return {"error": str(e)}
 
 def add_to_cantfree(tg_id, username):
     """Добавляет пользователя в CantFree"""
-    admin_login = {
-        "username": admn_username,
-        "password": admn_pass
-    }
-    
-    # Create session and login
-    session = requests.Session()
-    session.verify = False
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
     try:
-        # Login
-        login_response = session.post(f"{BASE_URL}/login", json=admin_login)
-        if login_response.status_code != 200:
-            return {"error": "Login failed"}
+        headers = get_headers()
         
         # Add to CantFree
         cantfree_data = {
@@ -771,11 +601,11 @@ def add_to_cantfree(tg_id, username):
             "username": username or f"user_{tg_id}"
         }
         
-        add_response = session.post(f"{BASE_URL}/cantfree", json=cantfree_data)
+        add_response = requests.post(f"{BASE_URL}/cantfree", json=cantfree_data, headers=headers, verify=False)
         if add_response.status_code == 200:
             return {"success": True, "message": "User added to CantFree"}
         else:
-            return {"error": f"Failed to add to CantFree: {add_response.status_code}"}
+            return {"error": f"Failed to add to CantFree: HTTP {add_response.status_code}", "response": add_response.text}
             
     except Exception as e:
         return {"error": str(e)}

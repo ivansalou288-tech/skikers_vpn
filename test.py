@@ -7,34 +7,58 @@ import time
 from urllib.parse import quote
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from config import PANEL_BASE_URL, PANEL_DOMAIN, PANEL_PORT, PANEL_PATH
-import secret
-BASE_URL = PANEL_BASE_URL
+# import secret
+BASE_URL = "https://panel.ezh-dev.ru:17211/fJRVDuTcoinPdJ4Dnd/"
 
-admn_username = secret.user
-admn_pass = secret.password
+# admn_username = secret.user
+# admn_pass = secret.password
+user = "admin"
+password = "panel_ezh_admin"
 def login():
 
     admin_login = {
-        "username": admn_username,
-        "password": admn_pass,
-        
+        "username": user,
+        "password": password,
     }
 
-    response = requests.post(f"{BASE_URL}/panel/login", json=admin_login, verify=False)
-    print(f"[DEBUG] HTTP Status: {response.status_code}")
-    print(f"[DEBUG] Response Headers: {dict(response.headers)}")
-    print(f"[DEBUG] Response Body: {response.text[:500]}")
-    print(f"[DEBUG] Response Length: {len(response.text)}")
+    # Список всех возможных путей логина для 3x-ui
+    login_paths = [
+        "/panel/api/login",
+        "/api/login", 
+        "/login",
+        "/panel/login",
+        "/user/login",
+        "/admin/login",
+    ]
     
-    if response.status_code != 200:
-        print(f"[ERROR] HTTP {response.status_code} - пытаемся POST на другой путь")
-        # Попробуем другой путь
-        response = requests.post(f"{BASE_URL}/api/login", json=admin_login, verify=False)
-        print(f"[DEBUG api/login] HTTP Status: {response.status_code}")
-        print(f"[DEBUG api/login] Response: {response.text[:500]}")
+    print(f"[INFO] Пробуем логин на {BASE_URL}")
+    print(f"[INFO] User: {user}")
+    print(f"\n" + "="*80)
     
-    if response.status_code == 200 and response.text:
-        return response.json()
-    else:
-        return {"error": f"Login failed with status {response.status_code}", "body": response.text[:200]}
+    for path in login_paths:
+        url = f"{BASE_URL}{path}"
+        print(f"\n[ПОПЫТКА] POST {url}")
+        try:
+            response = requests.post(url, json=admin_login, verify=False, timeout=5)
+            print(f"  Status: {response.status_code}")
+            print(f"  Content-Length: {len(response.text)}")
+            print(f"  Body: {response.text[:200]}")
+            
+            if response.status_code == 200 and response.text:
+                try:
+                    result = response.json()
+                    print(f"  ✓ JSON распарсен успешно!")
+                    print(f"  Результат: {result}")
+                    if result.get('success'):
+                        print(f"\n✓✓✓ ЛОГИН УСПЕШЕН на {path}")
+                        return result
+                except:
+                    print(f"  Ошибка парсинга JSON")
+        except Exception as e:
+            print(f"  Exception: {e}")
+    
+    print(f"\n{'='*80}")
+    print("✗ Ни один путь не сработал!")
+    return {"error": "All login paths failed"}
+
 print(login())
