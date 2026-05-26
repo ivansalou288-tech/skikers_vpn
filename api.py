@@ -4,6 +4,7 @@ import json
 import random
 import datetime
 import time
+import secrets
 from urllib.parse import quote
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from config import PANEL_BASE_URL, PANEL_DOMAIN, PANEL_PORT, PANEL_PATH
@@ -290,21 +291,42 @@ def panel_del_client_by_email(session, inbound_id, email):
 
 
 def panel_add_inbound_client(session, inbound_id, client_dict, protocol):
-    fragment = {"clients": [client_dict]}
-    if protocol == "vless":
-        fragment.setdefault("decryption", "none")
-        fragment.setdefault("encryption", "none")
-    elif protocol == "trojan":
-        fragment.setdefault("fallbacks", [])
-    body = {"id": inbound_id, "settings": json.dumps(fragment)}
-    url = f"{BASE_URL}/panel/api/inbounds/addClient"
-    print(f"[API] POST запрос: {url}")
+    """Add client using new /panel/api/clients/add endpoint with Bearer token"""
+    # Подготавливаем клиента для нового API
+    client = dict(client_dict)
+    
+    # Убеждаемся, что есть все необходимые поля
+    if "id" not in client and protocol == "vless":
+        client["id"] = client_dict.get("id", secrets.token_urlsafe(16))
+    if "password" not in client and protocol == "trojan":
+        client["password"] = secrets.token_urlsafe(16)
+    
+    # Для VLESS не нужна password, для Trojan не нужен id
+    if protocol == "vless" and "password" in client:
+        del client["password"]
+    if protocol == "trojan" and "id" in client:
+        del client["id"]
+    
+    # Новый API endpoint: /panel/api/clients/add
+    # Body format: {"client": {...}, "inboundIds": [inbound_id]}
+    body = {
+        "client": client,
+        "inboundIds": [inbound_id]
+    }
+    
+    url = f"{BASE_URL}/panel/api/clients/add"
+    print(f"[API] POST запрос (новый API): {url}")
     print(f"[API] Body: {json.dumps(body, indent=2)}")
-    r = session.post(url, json=body, verify=False)
+    
+    headers = get_headers()
+    r = requests.post(url, json=body, headers=headers, verify=False)
+    
     print(f"[API] Ответ панели - статус: {r.status_code}")
     print(f"[API] Ответ панели - содержимое: {r.text}")
+    
     if r.status_code != 200:
         return {"success": False, "error": f"HTTP {r.status_code}", "msg": r.text}
+    
     try:
         result = r.json()
         print(f"[API] Парсед JSON ответ: {json.dumps(result, indent=2)}")
@@ -485,12 +507,10 @@ def convert_date_to_timestamp(date_str):
 
 def add_client(inbound_id: int, username: str, tg_id: int, date: str):
     """
-    Новый клиент через POST .../addClient.
+    Новый клиент через POST .../clients/add (новый API endpoint).
     Параметр username — общий префикс для subId на всех инбаундах: subId = {username}_{tg_id},
     email/id на инбаунде = {username}_{tg_id}_{inbound_id}. Если username пустой — генерируется случайный префикс.
     """
-    import secrets
-
     expiry_timestamp = convert_date_to_timestamp(date)
     if isinstance(expiry_timestamp, str):
         return {"error": expiry_timestamp}
@@ -514,9 +534,6 @@ def add_client(inbound_id: int, username: str, tg_id: int, date: str):
         return {"error": f"Inbound with id {inbound_id} not found"}
 
     protocol = target_inbound.get("protocol", "vless")
-    settings_obj = parse_inbound_settings(target_inbound)
-    if not settings_obj:
-        return {"error": "Failed to parse current settings"}
 
     if protocol == "trojan":
         password = secrets.token_urlsafe(16)
@@ -550,21 +567,11 @@ def add_client(inbound_id: int, username: str, tg_id: int, date: str):
         }
         print(f"[API] Creating vless client id={client_id} inbound={inbound_id} subId={sub_id}")
 
-    session, err = panel_session()
-    if session is None:
-        return {"error": err or "Login failed"}
-
     print(f"[API] Подготовка клиента: email={email}, tg_id={tg_id}, sub_id={sub_id}")
     print(f"[API] Данные клиента: {json.dumps(client_data, indent=2)}")
-    
-    for old in find_clients_for_tg_on_inbound(settings_obj, tg_id, inbound_id):
-        em = old.get("email")
-        if em:
-            print(f"[API] Удаление старого клиента: {em}")
-            panel_del_client_by_email(session, inbound_id, em)
 
-    print(f"[API] Отправка клиента на панель...")
-    result = panel_add_inbound_client(session, inbound_id, client_data, protocol)
+    print(f"[API] Отправка клиента на панель (новый API)...")
+    result = panel_add_inbound_client(None, inbound_id, client_data, protocol)
     print(f"[API] Итоговый результат: {json.dumps(result, indent=2)}")
     return result
 
