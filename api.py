@@ -341,8 +341,13 @@ def panel_update_inbound_client(session, inbound_id, protocol, route_client_id, 
     body = {"id": inbound_id, "settings": json.dumps(patch)}
     enc = quote(str(route_client_id), safe="")
     url = f"{BASE_URL}/panel/api/inbounds/updateClient/{enc}"
+    print(f"[DEBUG update] URL: {url}")
+    print(f"[DEBUG update] route_client_id: {route_client_id}, protocol: {protocol}")
+    print(f"[DEBUG update] client_id from updated: {updated_client.get('id')}, email: {updated_client.get('email')}")
     r = session.post(url, json=body, verify=False)
+    print(f"[DEBUG update] Response status: {r.status_code}")
     if r.status_code != 200:
+        print(f"[DEBUG update] Error response: {r.text}")
         return {"success": False, "error": f"HTTP {r.status_code}", "msg": r.text}
     try:
         return r.json()
@@ -380,13 +385,18 @@ def _apply_expiry_to_user_inbounds(tg_id: int, new_expiry_ms: int, inbound_ids=N
             results.append({"inbound_id": iid, "skipped": "no client for this tg_id"})
             continue
 
+        print(f"[DEBUG expire] Found {len(matches)} matches for tg_id={tg_id} on inbound {iid}")
+
         primary = matches[0]
+        print(f"[DEBUG expire] Primary client: id={primary.get('id')}, email={primary.get('email')}, tgId={primary.get('tgId')}")
+        
         for extra in matches[1:]:
             em = extra.get("email")
             if em:
                 panel_del_client_by_email(session, iid, em)
 
         route_id = _client_route_id(protocol, primary)
+        print(f"[DEBUG expire] route_id={route_id}, protocol={protocol}")
         if not route_id:
             results.append({"inbound_id": iid, "error": "cannot resolve client id for API path"})
             continue
