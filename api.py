@@ -587,15 +587,20 @@ def add_client(inbound_id: int, username: str, tg_id: int, date: str):
     if result.get("success"):
         sub_id = client_data.get("subId")
         try:
-            webhook_url = "http://www.ezh-dev.ru:2500/add_client"
+            webhook_url = "https://www.ezh-dev.ru:2500/add_client"
             webhook_payload = {
                 "tg_id": tg_id,
                 "sub_id": sub_id
             }
             print(f"[API] Отправляем вебхук: POST {webhook_url}")
             print(f"[API] Payload: {json.dumps(webhook_payload)}")
-            webhook_response = requests.post(webhook_url, json=webhook_payload, timeout=5, verify=False)
+            webhook_response = requests.post(webhook_url, json=webhook_payload, timeout=10, verify=False)
             print(f"[API] Вебхук ответ статус: {webhook_response.status_code}")
+            print(f"[API] Вебхук ответ: {webhook_response.text}")
+        except requests.exceptions.Timeout:
+            print(f"[API] Ошибка: Timeout при отправке вебхука на {webhook_url}")
+        except requests.exceptions.ConnectionError:
+            print(f"[API] Ошибка: Connection Error при отправке вебхука на {webhook_url}")
         except Exception as e:
             print(f"[API] Ошибка при отправке вебхука: {e}")
     
