@@ -209,8 +209,19 @@ CRYPTOBOT_BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
 CRYPTOBOT_OPERATOR_CHAT_ID = 1240656726
 RUB_TO_USD_RATE = 70
 
+# Хранилище обработанных invoice_id для предотвращения дубликатов
+processed_invoices = set()
 
-async def send_crypto_notifications(user_id: int, username: str, time_months: int, amount_rub: int, is_renewal: bool, end_date_str: str, subscription_result):
+# Очистка старых invoice_id (старше 1 часа)
+def cleanup_old_invoices():
+    """Очищает старые invoice_id из памяти"""
+    global processed_invoices
+    if len(processed_invoices) > 1000:
+        processed_invoices = set()  # Очищаем если слишком много
+        print("[CryptoBot] Очищены старые invoice_id из памяти")
+
+
+async def send_crypto_notifications(user_id: int, username: str, time_months: int, amount_rub: int, is_renewal: bool, end_date_str: str, subscription_result, sub_id: str = None):
     """Отправляет уведомления об оплате CryptoBot"""
     try:
         from aiogram import Bot
@@ -223,11 +234,13 @@ async def send_crypto_notifications(user_id: int, username: str, time_months: in
         amount_usd = round(amount_rub / RUB_TO_USD_RATE, 2)
         
         if subscription_result and subscription_result.get('success'):
+            # Добавляем информацию о подписке
+            sub_info = f"\n🔑 Sub ID: <code>{sub_id}</code>" if sub_id else ""
             user_message = (
                 f"💎 <b>Оплата успешно завершена!</b>\n\n"
                 f"⏰ Период: {months_text}\n"
                 f"💰 Оплачено: {amount_rub}₽ ({amount_usd} USDT)\n"
-                f"📅 Действует до: {end_date_str}\n\n"
+                f"📅 Действует до: {end_date_str}{sub_info}\n\n"
                 f"{'Подписка продлена' if is_renewal else 'Подписка активирована'}! 🎉"
             )
         else:
@@ -299,23 +312,60 @@ async def crypto_webhook(request: Request):
                         except (ValueError, IndexError):
                             pass
             
-            amount_obj = body.get("amount")
-            if amount_obj:
-                amount_usd = float(amount_obj) if isinstance(amount_obj, (int, float, str)) else 0
+            # Получаем сумму из payload (это USDT)
+            invoice_payload = body.get("payload", {})
+            if isinstance(invoice_payload, dict):
+                amount_obj = invoice_payload.get("amount")
+                if amount_obj:
+                    try:
+                        amount_usd = float(amount_obj)
+                    except (ValueError, TypeError):
+                        amount_usd = 0
+                else:
+                    amount_usd = 0
+                
+                # Получаем invoice_id для проверки дубликатов
+                invoice_id = invoice_payload.get("invoice_id")
+            else:
+                amount_usd = 0
+                invoice_id = None
             
             amount_rub = int(float(amount_usd) * RUB_TO_USD_RATE)
+            
+            # Проверка на дубликат по invoice_id
+            cleanup_old_invoices()  # Очищаем старые если нужно
+            if invoice_id:
+                if invoice_id in processed_invoices:
+                    print(f"[CryptoBot Webhook] ДУБЛИКАТ: invoice_id={invoice_id} уже обработан, пропускаем")
+                    return {"ok": True, "status": "duplicate", "message": "Invoice already processed"}
+                processed_invoices.add(invoice_id)
             
             if not user_id:
                 print(f"[CryptoBot Webhook] ERROR: Не удалось извлечь user_id")
                 return {"ok": False, "error": "Missing user_id"}
             
-            print(f"[CryptoBot Webhook] Processing: user_id={user_id}, months={time_months}, amount_usd={amount_usd}, amount_rub={amount_rub}")
+            print(f"[CryptoBot Webhook] Processing: user_id={user_id}, months={time_months}, amount_usd={amount_usd}, amount_rub={amount_rub}, invoice_id={invoice_id}")
             
             current_time = datetime.now()
             end_time = current_time + timedelta(days=time_months * 31)
             end_date_str = end_time.strftime("%d.%m.%Y")
             
             subscription_result = None
+            sub_id = None
+            
+            # Сообщение о начале создания подписки
+            try:
+                bot = Bot(token=CRYPTOBOT_BOT_TOKEN)
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"⏳ <b>Подписка в процессе создания...</b>\n\n"
+                        f"Пожалуйста, подождите. Мы создаём вашу подписку на {time_months} мес.\n"
+                        f"Сумма: {amount_rub}₽ ({amount_usd} USDT)",
+                    parse_mode=ParseMode.HTML
+                )
+                await bot.session.close()
+            except Exception as e:
+                print(f"[CryptoBot Webhook] Не удалось отправить сообщение о создании: {e}")
             
             if is_renewal:
                 from api_extended import renew_subscription_all_inbounds
@@ -323,6 +373,7 @@ async def crypto_webhook(request: Request):
             else:
                 from api_extended import add_client_to_all_inbounds
                 subscription_result = add_client_to_all_inbounds(f"user_{user_id}", user_id, end_date_str)
+                sub_id = subscription_result.get("sub_id") if subscription_result else None
             
             try:
                 from api_sheets import add_vpn_sale
@@ -330,7 +381,7 @@ async def crypto_webhook(request: Request):
             except Exception as e:
                 print(f"[CryptoBot Webhook] Ошибка записи в Google Sheets: {e}")
             
-            await send_crypto_notifications(user_id, f"user_{user_id}", time_months, amount_rub, is_renewal, end_date_str, subscription_result)
+            await send_crypto_notifications(user_id, f"user_{user_id}", time_months, amount_rub, is_renewal, end_date_str, subscription_result, sub_id)
             
             print(f"[CryptoBot Webhook] Платёж обработан успешно!")
             return {"ok": True, "status": "paid"}
