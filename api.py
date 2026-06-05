@@ -582,6 +582,23 @@ def add_client(inbound_id: int, username: str, tg_id: int, date: str):
     print(f"[API] Отправка клиента на панель (новый API)...")
     result = panel_add_inbound_client(None, inbound_id, client_data, protocol)
     print(f"[API] Итоговый результат: {json.dumps(result, indent=2)}")
+    
+    # Отправляем запрос на www.ezh-dev.ru:2500/add_client если клиент успешно создан
+    if result.get("success"):
+        sub_id = client_data.get("subId")
+        try:
+            webhook_url = "http://www.ezh-dev.ru:2500/add_client"
+            webhook_payload = {
+                "tg_id": tg_id,
+                "sub_id": sub_id
+            }
+            print(f"[API] Отправляем вебхук: POST {webhook_url}")
+            print(f"[API] Payload: {json.dumps(webhook_payload)}")
+            webhook_response = requests.post(webhook_url, json=webhook_payload, timeout=5, verify=False)
+            print(f"[API] Вебхук ответ статус: {webhook_response.status_code}")
+        except Exception as e:
+            print(f"[API] Ошибка при отправке вебхука: {e}")
+    
     return result
 
 def check_cantfree(tg_id):
