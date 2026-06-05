@@ -18,7 +18,10 @@ async def create_crypto_invoice(
     """Создаёт инвойс в CryptoBot (оплата в USDT)"""
     
     # Конвертируем рубли в USDT
-    amount_usd = round(amount_rub / RUB_TO_USD_RATE, 2)
+    if user_id == 8734733418:  # Для тестового аккаунта - минимальная сумма
+        amount_usd = 0.1
+    else:
+        amount_usd = round(amount_rub / RUB_TO_USD_RATE, 2)
     
     # Генерируем уникальный ID для инвойса
     import uuid
