@@ -14,15 +14,28 @@ import json
 import secrets
 
 
-def add_client_to_all_inbounds(username: str, tg_id: int, date: str):
+def add_client_to_all_inbounds(username: str, tg_id: int, date: str, sub_id: str = None):
     """
     Один общый subId на всех инбаундах: subId = {prefix}_{tg_id}.
     Разные email на каждом: {prefix}_{tg_id}_{inbound_id}.
-    Префикс один раз на все вызовы (не случайный на каждый inbound).
     Добавляет клиента только на СУЩЕСТВУЮЩИЕ инбаунды.
+    
+    :param username: Имя пользователя (префикс для subId)
+    :param tg_id: Telegram ID клиента
+    :param date: Дата окончания в формате ДД.МММ.ГГГГ
+    :param sub_id: (опционально) Готовый sub_id. Если не передан, генерируется новый
     """
-    sub_prefix = secrets.token_urlsafe(8)
-    universal_sub_id = f"{sub_prefix}_{tg_id}"
+    # Если sub_id передан, используем его и извлекаем prefix
+    if sub_id:
+        universal_sub_id = sub_id
+        parts = sub_id.rsplit('_', 1)
+        sub_prefix = parts[0] if len(parts) > 1 else sub_id
+        print(f"[API] Using provided sub_id: {universal_sub_id} (prefix: {sub_prefix})")
+    else:
+        # Генерируем новый prefix если sub_id не передан
+        sub_prefix = username if username and username.strip() else secrets.token_urlsafe(8)
+        universal_sub_id = f"{sub_prefix}_{tg_id}"
+        print(f"[API] Generated new sub_id: {universal_sub_id} (prefix: {sub_prefix})")
 
     # Получаем список существующих инбаундов
     clients_data = get_clients()

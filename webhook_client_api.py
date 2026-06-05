@@ -63,7 +63,7 @@ async def add_client_webhook(request: dict):
     """
     Вебхук для добавления клиента на этот сервер.
     Ожидает: {"tg_id": int, "sub_id": str}
-    Создает клиента на всех инбаундах этого сервера.
+    Создает клиента на всех инбаундах этого сервера с тем же sub_id.
     """
     try:
         tg_id = request.get('tg_id')
@@ -87,22 +87,18 @@ async def add_client_webhook(request: dict):
         end_date = (current_date + datetime.timedelta(days=30)).strftime("%d.%m.%Y")
         
         print(f"[WEBHOOK add_client] Creating client with end_date={end_date}")
+        print(f"[WEBHOOK add_client] Using same sub_id: {sub_id}")
         
-        # Извлекаем prefix из sub_id
-        parts = sub_id.rsplit('_', 1)
-        prefix = parts[0] if len(parts) > 1 else sub_id
-        
-        print(f"[WEBHOOK add_client] Extracted prefix: {prefix}")
-        
-        # Добавляем клиента на все инбаунды
-        result = add_client_to_all_inbounds(prefix, int(tg_id), end_date)
+        # Добавляем клиента на все инбаунды с тем же sub_id
+        # Передаем готовый sub_id как параметр
+        result = add_client_to_all_inbounds("", int(tg_id), end_date, sub_id=sub_id)
         
         print(f"[WEBHOOK add_client] Result: {result}")
         
         if result.get("success"):
             return {
                 "success": True,
-                "message": f"Client tg_id={tg_id} created successfully",
+                "message": f"Client tg_id={tg_id} created successfully with sub_id={sub_id}",
                 "tg_id": tg_id,
                 "sub_id": sub_id,
                 "end_date": end_date,
