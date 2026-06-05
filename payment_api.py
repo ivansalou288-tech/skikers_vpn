@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Column, Integer, String, Float, DateTime, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import asyncio
 import requests
@@ -52,8 +53,48 @@ class Payment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
 
+
+class ProcessedSubscription(Base):
+    """Идемпотентность: один платёж — одна активация подписки."""
+    __tablename__ = "processed_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_key = Column(String, unique=True, index=True)
+    user_id = Column(Integer)
+    payment_type = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)
+
+
+def try_claim_subscription_processing(payment_key: str, user_id: int, payment_type: str) -> bool:
+    """Атомарно «занимает» платёж. True — только при первой обработке."""
+    db = SessionLocal()
+    try:
+        record = ProcessedSubscription(
+            payment_key=str(payment_key),
+            user_id=user_id,
+            payment_type=payment_type,
+        )
+        db.add(record)
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        return False
+    finally:
+        db.close()
+
+
+def is_subscription_processed(payment_key: str) -> bool:
+    db = SessionLocal()
+    try:
+        return db.query(ProcessedSubscription).filter(
+            ProcessedSubscription.payment_key == str(payment_key)
+        ).first() is not None
+    finally:
+        db.close()
 
 # Pydantic модели
 class PaymentWebhook(BaseModel):

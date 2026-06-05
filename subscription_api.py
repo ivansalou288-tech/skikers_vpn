@@ -14,7 +14,7 @@ import asyncio
 
 # Import payment functions
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from payment_api import create_paycore_payment, SessionLocal, Payment
+from payment_api import create_paycore_payment, SessionLocal, Payment, try_claim_subscription_processing
 
 # Импорты для webhook
 from sqlalchemy import create_engine
@@ -209,18 +209,6 @@ CRYPTOBOT_BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
 CRYPTOBOT_OPERATOR_CHAT_ID = 1240656726
 RUB_TO_USD_RATE = 70
 
-# Хранилище обработанных invoice_id для предотвращения дубликатов
-processed_invoices = set()
-
-# Очистка старых invoice_id (старше 1 часа)
-def cleanup_old_invoices():
-    """Очищает старые invoice_id из памяти"""
-    global processed_invoices
-    if len(processed_invoices) > 1000:
-        processed_invoices = set()  # Очищаем если слишком много
-        print("[CryptoBot] Очищены старые invoice_id из памяти")
-
-
 def end_date_from_subscription_result(subscription_result, fallback_end_date_str: str) -> str:
     """Берёт фактическую дату окончания из результата продления/создания подписки."""
     if not subscription_result:
@@ -344,19 +332,17 @@ async def crypto_webhook(request: Request):
             
             amount_rub = int(float(amount_usd) * RUB_TO_USD_RATE)
             
-            # Проверка на дубликат по invoice_id
-            cleanup_old_invoices()  # Очищаем старые если нужно
-            if invoice_id:
-                if invoice_id in processed_invoices:
-                    print(f"[CryptoBot Webhook] ДУБЛИКАТ: invoice_id={invoice_id} уже обработан, пропускаем")
-                    return {"ok": True, "status": "duplicate", "message": "Invoice already processed"}
-                processed_invoices.add(invoice_id)
-            
             if not user_id:
                 print(f"[CryptoBot Webhook] ERROR: Не удалось извлечь user_id")
                 return {"ok": False, "error": "Missing user_id"}
             
             print(f"[CryptoBot Webhook] Processing: user_id={user_id}, months={time_months}, amount_usd={amount_usd}, amount_rub={amount_rub}, invoice_id={invoice_id}")
+
+            if invoice_id:
+                payment_key = f"crypto_{invoice_id}"
+                if not try_claim_subscription_processing(payment_key, user_id, "crypto"):
+                    print(f"[CryptoBot Webhook] ДУБЛИКАТ: {payment_key} уже обработан, пропускаем")
+                    return {"ok": True, "status": "duplicate", "message": "Invoice already processed"}
             
             current_time = datetime.now()
             end_time = current_time + timedelta(days=time_months * 31)
@@ -530,6 +516,11 @@ async def payment_webhook(request: Request):
             if not payment:
                 print(f"[PayCore Webhook] ERROR: Payment not found for order_id: {order_id}")
                 raise HTTPException(status_code=404, detail="Payment not found")
+
+            payment_key = f"sbp_{payment.order_id}"
+            if not try_claim_subscription_processing(payment_key, payment.user_id, "sbp"):
+                print(f"[PayCore Webhook] ДУБЛИКАТ: {payment_key} уже обработан, пропускаем")
+                return {"status": "duplicate", "message": "Already processed"}
             
             # Обновляем информацию о платеже
             payment.final_amount = final_amount or amount

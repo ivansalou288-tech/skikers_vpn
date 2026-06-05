@@ -24,7 +24,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from api import add_client, getSubById, check_cantfree, add_to_cantfree, dell_client, get_clients, renew_subscription, convert_timestamp_to_human_readable
 from api_sheets import add_vpn_sale
-from payment_api import create_paycore_payment, get_payment_status, set_bot_instance, update_payment_message_id
+from payment_api import create_paycore_payment, get_payment_status, set_bot_instance, update_payment_message_id, try_claim_subscription_processing
 from crypto_pay_api import create_crypto_invoice, get_crypto_invoice_status, convert_rub_to_usd
 from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH
 
@@ -1339,11 +1339,23 @@ async def crypto_check_callback(callback: types.CallbackQuery):
         status = result.get("status")
         
         if status == "paid":
-            # Платёж подтверждён
+            payment_key = f"crypto_{invoice_id}"
+            if not try_claim_subscription_processing(payment_key, callback.from_user.id, "crypto"):
+                await callback.message.edit_text(
+                    "<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Оплата уже обработана!</b>\n\n"
+                    "Подписка была активирована ранее. Повторная обработка не требуется.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(text="Моя подписка", callback_data="subscription", style="primary")]
+                        ]
+                    ),
+                    parse_mode=ParseMode.HTML
+                )
+                return
+
             subscription_info, sub_status = await get_subscription_info(callback.from_user.id)
             
             if sub_status == "has_subscription":
-                # Продлеваем подписку
                 renew_result = renew_subscription(callback.from_user.id, time_months)
                 
                 if renew_result.get('success'):
@@ -1531,15 +1543,26 @@ async def sbp_paid_callback(callback: types.CallbackQuery):
         status = payment_info.get("status")
         
         if status == "completed":
-            # Платёж подтверждён - активируем подписку
             try:
-                # Получаем информацию о платеже для извлечения данных
                 payment_details = get_payment_status(order_id)
                 if payment_details.get("exists"):
                     time_months = payment_details.get("time_months", 1)
                     price_rubles = payment_details.get("amount", 0)
+
+                    payment_key = f"sbp_{order_id}"
+                    if not try_claim_subscription_processing(payment_key, callback.from_user.id, "sbp"):
+                        await callback.message.edit_text(
+                            "<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Оплата уже обработана!</b>\n\n"
+                            "Подписка была активирована ранее. Повторная обработка не требуется.",
+                            reply_markup=InlineKeyboardMarkup(
+                                inline_keyboard=[
+                                    [InlineKeyboardButton(text="Моя подписка", callback_data="subscription", style="primary")]
+                                ]
+                            ),
+                            parse_mode=ParseMode.HTML
+                        )
+                        return
                     
-                    # Проверяем, есть ли у пользователя уже подписка
                     subscription_info, status = await get_subscription_info(callback.from_user.id)
                     
                     if status == "has_subscription":
@@ -2055,7 +2078,20 @@ async def crypto_renew_check_callback(callback: types.CallbackQuery):
         status = result.get("status")
         
         if status == "paid":
-            # Платёж подтверждён - продлеваем подписку
+            payment_key = f"crypto_{invoice_id}"
+            if not try_claim_subscription_processing(payment_key, callback.from_user.id, "crypto"):
+                await callback.message.edit_text(
+                    "<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Оплата уже обработана!</b>\n\n"
+                    "Подписка была продлена ранее. Повторная обработка не требуется.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(text="Моя подписка", callback_data="subscription", style="primary")]
+                        ]
+                    ),
+                    parse_mode=ParseMode.HTML
+                )
+                return
+
             renew_result = renew_subscription(callback.from_user.id, time_months)
             
             if renew_result.get('success'):
