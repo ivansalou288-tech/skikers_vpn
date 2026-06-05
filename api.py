@@ -501,13 +501,13 @@ def set_subscription_expiry_on_panel(tg_id: int, new_expiry_ms: int, inbound_ids
 
 
 def dell_client_from_all_inbounds(tg_id: int, inbound_ids=None):
-    """Удаляет клиента со всех указанных инбаундов."""
-    if inbound_ids is None:
-        inbound_ids = {1, 2, 3, 4}
-    
+    """Удаляет клиента со всех указанных инбаундов (по умолчанию — со всех существующих)."""
     clients_data = get_clients()
     if not clients_data.get("success"):
         return {"success": False, "error": "Failed to get inbounds"}
+
+    if inbound_ids is None:
+        inbound_ids = {inbound.get("id") for inbound in clients_data.get("obj", []) if inbound.get("id") is not None}
     
     session, err = panel_session()
     if session is None:
@@ -612,7 +612,7 @@ def renew_subscription(tg_id: int, additional_months: int):
     # 6. Отправляем webhook на второй сервер для создания
     try:
         webhook_url = "https://www.ezh-dev.ru:2500/add_client"
-        webhook_payload = {"tg_id": tg_id, "sub_id": sub_id}
+        webhook_payload = {"tg_id": tg_id, "sub_id": sub_id, "end_date": new_date_str}
         print(f"[RENEW] Sending add webhook to second server: {webhook_url}")
         webhook_response = requests.post(webhook_url, json=webhook_payload, timeout=30, verify=False)
         print(f"[RENEW] Add webhook response: {webhook_response.status_code} - {webhook_response.text}")

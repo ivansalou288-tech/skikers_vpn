@@ -3,7 +3,6 @@
 from api import (
     add_client,
     get_clients,
-    renew_subscription_on_panel,
     set_subscription_expiry_on_panel,
     find_clients_for_tg_on_inbound,
     parse_inbound_settings,
@@ -75,11 +74,12 @@ def add_client_to_all_inbounds(username: str, tg_id: int, date: str, sub_id: str
     }
 
 def renew_subscription_all_inbounds(tg_id: int, additional_months: int):
-    """Продление на инбаундах 1–4: только новый expiryTime через updateClient/{id} (3x-ui)."""
+    """Удаляет старую подписку со всех серверов и создаёт новую с продлённым сроком."""
+    from api import renew_subscription
     try:
-        return renew_subscription_on_panel(tg_id, additional_months)
+        return renew_subscription(tg_id, additional_months)
     except Exception as e:
-        return {"error": str(e)}
+        return {"success": False, "error": str(e)}
 
 def dell_client(inbound_id: int, tg_id: int):
     """Удаляет всех клиентов с данным tgId на указанном inbound (delClientByEmail)."""

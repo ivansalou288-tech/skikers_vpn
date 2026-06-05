@@ -221,6 +221,18 @@ def cleanup_old_invoices():
         print("[CryptoBot] Очищены старые invoice_id из памяти")
 
 
+def end_date_from_subscription_result(subscription_result, fallback_end_date_str: str) -> str:
+    """Берёт фактическую дату окончания из результата продления/создания подписки."""
+    if not subscription_result:
+        return fallback_end_date_str
+    if subscription_result.get("new_date"):
+        return subscription_result["new_date"]
+    new_expiry = subscription_result.get("new_expiry")
+    if new_expiry:
+        return datetime.fromtimestamp(new_expiry / 1000).strftime("%d.%m.%Y")
+    return fallback_end_date_str
+
+
 async def send_crypto_notifications(user_id: int, username: str, time_months: int, amount_rub: int, is_renewal: bool, end_date_str: str, subscription_result, sub_id: str = None):
     """Отправляет уведомления об оплате CryptoBot"""
     try:
@@ -370,10 +382,12 @@ async def crypto_webhook(request: Request):
             if is_renewal:
                 from api_extended import renew_subscription_all_inbounds
                 subscription_result = renew_subscription_all_inbounds(user_id, time_months)
+                end_date_str = end_date_from_subscription_result(subscription_result, end_date_str)
+                sub_id = subscription_result.get("subId") if subscription_result else None
             else:
                 from api_extended import add_client_to_all_inbounds
                 subscription_result = add_client_to_all_inbounds(f"user_{user_id}", user_id, end_date_str)
-                sub_id = subscription_result.get("sub_id") if subscription_result else None
+                sub_id = subscription_result.get("subId") if subscription_result else None
             
             try:
                 from api_sheets import add_vpn_sale
@@ -544,6 +558,7 @@ async def payment_webhook(request: Request):
             if is_renewal:
                 from api_extended import renew_subscription_all_inbounds
                 subscription_result = renew_subscription_all_inbounds(user_id, time_months)
+                end_date_str = end_date_from_subscription_result(subscription_result, end_date_str)
             else:
                 from api_extended import add_client_to_all_inbounds
                 subscription_result = add_client_to_all_inbounds(username, user_id, end_date_str)

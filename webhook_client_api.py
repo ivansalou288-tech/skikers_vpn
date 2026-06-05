@@ -68,6 +68,7 @@ async def add_client_webhook(request: dict):
     try:
         tg_id = request.get('tg_id')
         sub_id = request.get('sub_id')
+        end_date = request.get('end_date')
         
         if not tg_id or not sub_id:
             return {
@@ -75,16 +76,16 @@ async def add_client_webhook(request: dict):
                 "error": "Missing required fields: tg_id and sub_id"
             }
         
-        print(f"[WEBHOOK add_client] Received: tg_id={tg_id}, sub_id={sub_id}")
+        print(f"[WEBHOOK add_client] Received: tg_id={tg_id}, sub_id={sub_id}, end_date={end_date}")
         print(f"[WEBHOOK add_client] Using panel: {cfg.PANEL_BASE_URL}")
         
         # Импортируем функции API
         from api_extended import add_client_to_all_inbounds
         import datetime
         
-        # Генерируем дату окончания подписки на 30 дней
-        current_date = datetime.datetime.now()
-        end_date = (current_date + datetime.timedelta(days=30)).strftime("%d.%m.%Y")
+        if not end_date:
+            current_date = datetime.datetime.now()
+            end_date = (current_date + datetime.timedelta(days=30)).strftime("%d.%m.%Y")
         
         print(f"[WEBHOOK add_client] Creating client with end_date={end_date}")
         print(f"[WEBHOOK add_client] Using same sub_id: {sub_id}")
