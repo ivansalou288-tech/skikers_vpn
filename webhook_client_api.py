@@ -79,20 +79,51 @@ async def add_client_webhook(request: dict):
         print(f"[WEBHOOK add_client] Received: tg_id={tg_id}, sub_id={sub_id}, end_date={end_date}")
         print(f"[WEBHOOK add_client] Using panel: {cfg.PANEL_BASE_URL}")
         
-        # Импортируем функции API
         from api_extended import add_client_to_all_inbounds
+        from api import get_clients, parse_inbound_settings, panel_session, panel_del_client_by_email, _renew_by_updating_expiry, convert_date_to_timestamp
         import datetime
         
         if not end_date:
             current_date = datetime.datetime.now()
             end_date = (current_date + datetime.timedelta(days=30)).strftime("%d.%m.%Y")
+
+        expiry_ms = convert_date_to_timestamp(end_date)
+        if isinstance(expiry_ms, str):
+            return {"success": False, "error": expiry_ms}
+
+        # Удаляем старых клиентов с этим sub_id перед созданием
+        clients_data = get_clients()
+        if clients_data.get("success"):
+            session, _ = panel_session()
+            if session:
+                for inbound in clients_data.get("obj", []):
+                    iid = inbound.get("id")
+                    settings_obj = parse_inbound_settings(inbound)
+                    if not settings_obj:
+                        continue
+                    for client in settings_obj.get("clients", []):
+                        if client.get("subId") == sub_id:
+                            email = client.get("email")
+                            if email:
+                                print(f"[WEBHOOK add_client] Deleting old client email={email} from inbound {iid}")
+                                panel_del_client_by_email(session, iid, email)
         
         print(f"[WEBHOOK add_client] Creating client with end_date={end_date}")
         print(f"[WEBHOOK add_client] Using same sub_id: {sub_id}")
         
-        # Добавляем клиента на все инбаунды с тем же sub_id
-        # Передаем готовый sub_id как параметр
         result = add_client_to_all_inbounds("", int(tg_id), end_date, sub_id=sub_id)
+
+        if not result.get("success"):
+            print(f"[WEBHOOK add_client] Create failed, trying update fallback...")
+            update_result = _renew_by_updating_expiry(int(tg_id), expiry_ms)
+            if update_result.get("success"):
+                result = {
+                    "success": True,
+                    "message": "Client expiry updated on second server",
+                    "subId": sub_id,
+                    "method": "update",
+                    "details": update_result,
+                }
         
         print(f"[WEBHOOK add_client] Result: {result}")
         

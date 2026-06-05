@@ -287,19 +287,54 @@ def find_clients_for_tg_on_inbound(settings_obj, tg_id, inbound_id):
 
 
 def panel_del_client_by_email(session, inbound_id, email):
+    """Удаляет клиента: сначала новый API /clients/del, затем legacy delClientByEmail."""
     if not email:
         return {"success": False, "msg": "empty email"}
     enc = quote(str(email), safe="")
-    r = session.post(
-        f"{BASE_URL}/panel/api/inbounds/{inbound_id}/delClientByEmail/{enc}",
-        verify=False,
-    )
+
+    url = f"{BASE_URL}/panel/api/clients/del/{enc}"
+    print(f"[API] DELETE client (new API): {url}")
+    r = session.post(url, verify=False)
+    print(f"[API] DELETE response: {r.status_code} - {r.text[:300]}")
+    if r.status_code == 200:
+        try:
+            result = r.json()
+            if result.get("success"):
+                return result
+        except json.JSONDecodeError:
+            return {"success": True, "msg": r.text}
+
+    url_legacy = f"{BASE_URL}/panel/api/inbounds/{inbound_id}/delClientByEmail/{enc}"
+    print(f"[API] DELETE client (legacy API): {url_legacy}")
+    r = session.post(url_legacy, verify=False)
+    print(f"[API] DELETE legacy response: {r.status_code} - {r.text[:300]}")
     if r.status_code != 200:
         return {"success": False, "error": f"HTTP {r.status_code}", "msg": r.text}
     try:
         return r.json()
     except json.JSONDecodeError:
         return {"success": True, "msg": r.text}
+
+
+def panel_update_client_by_email(session, email, client_data, inbound_ids=None):
+    """Обновляет клиента через новый API /panel/api/clients/update/{email}."""
+    if not email:
+        return {"success": False, "msg": "empty email"}
+    enc = quote(str(email), safe="")
+    url = f"{BASE_URL}/panel/api/clients/update/{enc}"
+    if inbound_ids:
+        url += "?inboundIds=" + ",".join(str(i) for i in inbound_ids)
+
+    print(f"[API] UPDATE client: {url}")
+    print(f"[API] UPDATE body: {json.dumps(client_data, indent=2)}")
+    r = session.post(url, json=client_data, verify=False)
+    print(f"[API] UPDATE response: {r.status_code} - {r.text[:300]}")
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}", "msg": r.text}
+    try:
+        return r.json()
+    except json.JSONDecodeError:
+        return {"success": False, "msg": r.text}
 
 
 def panel_add_inbound_client(session, inbound_id, client_dict, protocol):
@@ -538,6 +573,51 @@ def dell_client_from_all_inbounds(tg_id: int, inbound_ids=None):
     return {"success": True, "results": results}
 
 
+def _renew_by_updating_expiry(tg_id: int, new_expiry_ms: int):
+    """Обновляет expiryTime у всех клиентов пользователя через новый API clients/update."""
+    clients_data = get_clients()
+    if not clients_data.get("success"):
+        return {"success": False, "error": "Failed to get inbounds", "results": []}
+
+    session, err = panel_session()
+    if session is None:
+        return {"success": False, "error": err or "Login failed", "results": []}
+
+    results = []
+    for inbound in clients_data.get("obj", []):
+        iid = inbound.get("id")
+        settings_obj = parse_inbound_settings(inbound)
+        if not settings_obj:
+            continue
+
+        protocol = inbound.get("protocol", "vless")
+        matches = find_clients_for_tg_on_inbound(settings_obj, tg_id, iid)
+        for client in matches:
+            email = client.get("email")
+            if not email:
+                continue
+
+            updated = dict(client)
+            updated["expiryTime"] = new_expiry_ms
+            updated["enable"] = True
+            if updated.get("tgId") is None:
+                updated["tgId"] = tg_id
+            if protocol == "trojan" and "id" in updated:
+                del updated["id"]
+            elif protocol != "trojan" and "password" in updated:
+                del updated["password"]
+
+            upd = panel_update_client_by_email(session, email, updated, [iid])
+            results.append({"inbound_id": iid, "email": email, "update_result": upd})
+
+    successfully_updated = [r for r in results if r.get("update_result", {}).get("success")]
+    return {
+        "success": len(successfully_updated) > 0,
+        "new_expiry": new_expiry_ms,
+        "results": results,
+    }
+
+
 def renew_subscription(tg_id: int, additional_months: int):
     """
     Продлевает подписку на указанное количество месяцев.
@@ -600,16 +680,25 @@ def renew_subscription(tg_id: int, additional_months: int):
     from api_extended import add_client_to_all_inbounds
     add_result = add_client_to_all_inbounds("", tg_id, new_date_str, sub_id=sub_id)
     print(f"[RENEW] Recreate result: {add_result}")
-    
+
+    renew_method = "recreate"
+    final_result = add_result
+
     if not add_result.get("success"):
-        return {
-            "success": False, 
-            "error": "Failed to recreate client", 
-            "details": add_result,
-            "subId": sub_id
-        }
-    
-    # 6. Отправляем webhook на второй сервер для создания
+        print("[RENEW] Recreate failed, falling back to update expiry via new API...")
+        update_result = _renew_by_updating_expiry(tg_id, new_expiry_ms)
+        print(f"[RENEW] Update fallback result: {update_result}")
+        if not update_result.get("success"):
+            return {
+                "success": False,
+                "error": "Failed to recreate or update client",
+                "details": {"deleted": del_result, "created": add_result, "updated": update_result},
+                "subId": sub_id,
+            }
+        renew_method = "update"
+        final_result = update_result
+
+    # 6. Отправляем webhook на второй сервер для создания/обновления
     try:
         webhook_url = "https://www.ezh-dev.ru:2500/add_client"
         webhook_payload = {"tg_id": tg_id, "sub_id": sub_id, "end_date": new_date_str}
@@ -618,18 +707,20 @@ def renew_subscription(tg_id: int, additional_months: int):
         print(f"[RENEW] Add webhook response: {webhook_response.status_code} - {webhook_response.text}")
     except Exception as e:
         print(f"[RENEW] Error sending add webhook: {e}")
-    
+
     return {
         "success": True,
-        "message": f"Subscription renewed for {additional_months} months",
+        "message": f"Subscription renewed for {additional_months} months ({renew_method})",
         "subId": sub_id,
         "old_expiry": current_expiry,
         "new_expiry": new_expiry_ms,
         "new_date": new_date_str,
+        "method": renew_method,
         "results": {
             "deleted": del_result,
-            "created": add_result
-        }
+            "created": add_result if renew_method == "recreate" else None,
+            "updated": final_result if renew_method == "update" else None,
+        },
     }
 
 def convert_timestamp_to_human_readable(timestamp_ms):
