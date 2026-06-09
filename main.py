@@ -613,12 +613,18 @@ async def start(message: types.Message):
     # Добавляем/обновляем пользователя в базе данных
     await add_or_update_user(message.from_user)
     
-    # Проверяем, есть ли реферальный параметр
     args = message.text.split()
     referrer_id = None
-    
-    if len(args) > 1 and args[1].isdigit():
-        referrer_id = int(args[1])
+
+    if len(args) > 1:
+        start_param = args[1]
+        if start_param == "merch":
+            from merch_tracking import register_merch_visit
+            is_new = register_merch_visit(message.from_user.id, message.from_user.username)
+            if is_new:
+                print(f"[MERCH] New visit: user_id={message.from_user.id}")
+        elif start_param.isdigit():
+            referrer_id = int(start_param)
     
     if is_admin(message.from_user.id):
         await message.answer(
@@ -639,6 +645,29 @@ async def start(message: types.Message):
         )
 
 
+
+
+@router.message(Command("merch"))
+async def merch_stats_command(message: types.Message):
+    """Статистика по реферальной ссылке ?start=merch (только для админа)"""
+    if not is_admin(message.from_user.id):
+        return
+
+    from merch_tracking import get_merch_stats
+
+    stats = get_merch_stats()
+    bot_username = (await bot.get_me()).username
+    merch_link = f"https://t.me/{bot_username}?start=merch"
+
+    await message.answer(
+        f"<b>📊 Статистика Merch</b>\n\n"
+        f"🔗 Ссылка:\n<code>{merch_link}</code>\n\n"
+        f"👥 Перешло по ссылке: <b>{stats['visits']}</b>\n"
+        f"💳 Купило подписку: <b>{stats['buyers']}</b>\n"
+        f"🧾 Всего покупок: <b>{stats['purchases']}</b>\n"
+        f"💰 Заработано всего: <b>{stats['total_revenue']:.0f}₽</b>",
+        parse_mode=ParseMode.HTML
+    )
 
 
 @router.message(Command("referral"))

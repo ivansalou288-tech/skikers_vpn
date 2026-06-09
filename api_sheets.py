@@ -13,6 +13,13 @@ VPN_SALES_SHEET = "vpn-finance"
 def add_vpn_sale(user_id, username, months, price):
     """Record VPN sale to Google Sheets with date, user info, duration, price and total profit"""
     try:
+        from merch_tracking import record_merch_sale
+        if record_merch_sale(user_id, price, months):
+            print(f"[MERCH] Sale recorded: user_id={user_id}, amount={price}, months={months}")
+    except Exception as e:
+        print(f"[MERCH] Error recording sale: {e}")
+
+    try:
         import time
 
         # Open the VPN sales spreadsheet
