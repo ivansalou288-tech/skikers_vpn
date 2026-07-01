@@ -50,4 +50,9 @@ def crypto_webhook_url() -> str:
     return f"{subscription_api_base_url()}/crypto/webhook"
 
 
+# Telegram channel for subscription check
+CHANNEL_USERNAME = "Creep_VPN"  # @username without @
+CHANNEL_LINK = f"https://t.me/{CHANNEL_USERNAME}"
+
+
 

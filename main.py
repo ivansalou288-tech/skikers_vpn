@@ -25,7 +25,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api import add_client, getSubById, check_cantfree, add_to_cantfree, dell_client, get_clients, renew_subscription, convert_timestamp_to_human_readable
 from payment_api import create_paycore_payment, get_payment_status, set_bot_instance, update_payment_message_id, try_claim_subscription_processing
 from crypto_pay_api import create_crypto_invoice, get_crypto_invoice_status, convert_rub_to_usd
-from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN
+from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN, CHANNEL_USERNAME, CHANNEL_LINK
 
 OPERATOR_CHAT_ID = [8097905858, 1625853204]
 
@@ -541,6 +541,16 @@ async def send_expiration_reminder(tg_id: int, reminder_type: str, expiry_date: 
 def is_admin(user_id: int) -> bool:
     return user_id in OPERATOR_CHAT_ID
 
+
+async def check_channel_subscription(user_id: int, bot: Bot) -> bool:
+    """Проверяет подписан ли пользователь на канал"""
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except Exception as e:
+        print(f"Error checking channel subscription: {e}")
+        return False
+
 # Создаем inline кнопки
 subscription_btn = InlineKeyboardButton(text="Подписка", callback_data="subscription", style="primary", icon_custom_emoji_id='5296369303661067030')
 contact_btn = InlineKeyboardButton(text="Связь", callback_data="contact", style="primary", icon_custom_emoji_id='5443038326535759644')
@@ -633,15 +643,35 @@ async def start(message: types.Message):
             parse_mode=ParseMode.HTML
         )
     else:
-        # Если есть реферал, даем бонус
-        if referrer_id and referrer_id != message.from_user.id:
-            await handle_referral_bonus(message.from_user.id, referrer_id)
+        # Проверяем подписку на канал
+        is_subscribed = await check_channel_subscription(message.from_user.id, bot)
         
-        await message.answer(
-            "Привет! Я бот для управления VPN.\n\n"
-            "Выберите одну из опций ниже:",
-            reply_markup=keyboard
-        )
+        if not is_subscribed:
+            # Пользователь не подписан на канал
+            subscribe_keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="📢 Подписаться на канал", url=CHANNEL_LINK, style="primary")],
+                    [InlineKeyboardButton(text="✅ Проверить подписку", callback_data="check_subscription", style="success")]
+                ]
+            )
+            await message.answer(
+                "👋 Привет! Для использования бота необходимо подписаться на наш канал.\n\n"
+                f"📢 <b>Канал:</b> @{CHANNEL_USERNAME}\n\n"
+                "После подписки нажмите кнопку ниже для проверки:",
+                reply_markup=subscribe_keyboard,
+                parse_mode=ParseMode.HTML
+            )
+        else:
+            # Пользователь подписан - показываем обычное меню
+            # Если есть реферал, даем бонус
+            if referrer_id and referrer_id != message.from_user.id:
+                await handle_referral_bonus(message.from_user.id, referrer_id)
+            
+            await message.answer(
+                "Привет! Я бот для управления VPN.\n\n"
+                "Выберите одну из опций ниже:",
+                reply_markup=keyboard
+            )
 
 
 
@@ -1910,6 +1940,26 @@ async def contact_callback(callback: types.CallbackQuery):
         f"{contact_info}",
         parse_mode=ParseMode.HTML
     )
+
+@router.callback_query(lambda callback: callback.data == "check_subscription")
+async def check_subscription_callback(callback: types.CallbackQuery):
+    """Проверка подписки на канал"""
+    await callback.answer()
+    
+    is_subscribed = await check_channel_subscription(callback.from_user.id, bot)
+    
+    if is_subscribed:
+        await callback.message.edit_text(
+            "✅ <b>Вы подписаны на канал!</b>\n\n"
+            "Теперь вы можете использовать бота.",
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    else:
+        await callback.answer(
+            "❌ Вы ещё не подписались на канал. Пожалуйста, подпишитесь и попробуйте снова.",
+            show_alert=True
+        )
 
 @router.callback_query(lambda callback: callback.data == "info")
 async def info_callback(callback: types.CallbackQuery):
