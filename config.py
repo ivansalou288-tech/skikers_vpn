@@ -10,12 +10,12 @@ def _env(name: str, default: str) -> str:
 
 
 # Domain where 3x-ui panel is reachable (used by public API server too)
-PANEL_DOMAIN ="panel.ezhqpy.ru"
-PUBLIC_DOMAIN = "panel.ezhqpy.ru"
+PANEL_DOMAIN ="creepproject.ru"
+PUBLIC_DOMAIN = "creepproject.ru"
 #* PANEL_PORT=18869
-PANEL_PORT=17468
+PANEL_PORT=52098
 # Optional "location" / prefix path in 3x-ui panel URL (e.g. fHvt2YpAP8)
-PANEL_PATH = "hzMgfeOHxJ9E1r4tcS"
+PANEL_PATH = "z01JuSRblHGfjaLUOr"
 #* PANEL_PATH = "17yIzDBi5K2d8nr6Vt"
 SUB_PAGE_PATH = "sub"
 # Scheme and ports for your FastAPI subscription service (not the 3x-ui panel)
@@ -29,7 +29,7 @@ PANEL_SCHEME = "https"
 PANEL_BASE_URL = f"{PANEL_SCHEME}://{PANEL_DOMAIN}:{PANEL_PORT}/{PANEL_PATH}"
 
 # Public base URL used in user-facing links (subscriptions, landing pages, etc.)
-PUBLIC_DOMAIN = "panel.ezhqpy.ru"
+PUBLIC_DOMAIN = "creepproject.ru"
 PUBLIC_SCHEME = "https"
 PUBLIC_BASE_URL = f"{PUBLIC_SCHEME}://{PUBLIC_DOMAIN}"
 

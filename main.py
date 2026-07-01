@@ -26,8 +26,7 @@ from api import add_client, getSubById, check_cantfree, add_to_cantfree, dell_cl
 from api_sheets import add_vpn_sale
 from payment_api import create_paycore_payment, get_payment_status, set_bot_instance, update_payment_message_id, try_claim_subscription_processing
 from crypto_pay_api import create_crypto_invoice, get_crypto_invoice_status, convert_rub_to_usd
-from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH
-
+from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN
 
 OPERATOR_CHAT_ID = 1240656726
 
@@ -427,7 +426,8 @@ async def add_referral_days_to_user(user_id: int, days: int):
             end_time = current_time + datetime.timedelta(days=days)
             api_date = end_time.strftime("%d.%m.%Y")
             
-            add_result = add_client(21, f"user_{user_id}", user_id, api_date)
+            from api_extended import add_client_to_all_inbounds
+            add_result = add_client_to_all_inbounds(f"user_{user_id}", user_id, api_date)
             pass
     except Exception as e:
         pass
@@ -875,7 +875,7 @@ async def subscription_callback(callback: types.CallbackQuery):
         
         # Создаем клавиатуру только если подписка активна
         if is_enabled:
-            subscription_url = f"https://www.ezh-dev.ru/sub/{sub_id}"
+            subscription_url = f"https://{PUBLIC_DOMAIN}/sub/{sub_id}"
             subscription_keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
                     # [InlineKeyboardButton(text="Использовать", url=subscription_url, style="primary", icon_custom_emoji_id='5271604874419647061')],
@@ -1202,7 +1202,8 @@ async def success_payment_handler(message: Message):
                 # Добавляем клиента в систему
                 try:
                     api_date = end_time.strftime("%d.%m.%Y")
-                    result = add_client(21, f"user_{message.from_user.id}", message.from_user.id, api_date)
+                    from api_extended import add_client_to_all_inbounds
+                    result = add_client_to_all_inbounds(f"user_{message.from_user.id}", message.from_user.id, api_date)
                     print(f"Client added via stars payment: {result}")
                     
                     # Записываем продажу в Google Sheets
@@ -1431,7 +1432,8 @@ async def crypto_check_callback(callback: types.CallbackQuery):
                 
                 try:
                     api_date = end_time.strftime("%d.%m.%Y")
-                    result = add_client(21, f"user_{callback.from_user.id}", callback.from_user.id, api_date)
+                    from api_extended import add_client_to_all_inbounds
+                    result = add_client_to_all_inbounds(f"user_{callback.from_user.id}", callback.from_user.id, api_date)
                     print(f"Client added via CryptoBot payment: {result}")
                     
                     # Записываем продажу в Google Sheets
@@ -1648,7 +1650,8 @@ async def sbp_paid_callback(callback: types.CallbackQuery):
                         # Добавляем клиента в систему
                         try:
                             api_date = end_time.strftime("%d.%m.%Y")
-                            result = add_client(21, f"user_{callback.from_user.id}", callback.from_user.id, api_date)
+                            from api_extended import add_client_to_all_inbounds
+                            result = add_client_to_all_inbounds(f"user_{callback.from_user.id}", callback.from_user.id, api_date)
                             print(f"Client added via SBP payment: {result}")
                             
                             # Записываем продажу в Google Sheets
@@ -1857,7 +1860,8 @@ async def approve_payment_callback(callback: types.CallbackQuery):
     try:
         # Конвертируем дату в формат ДД.ММ.ГГГГ для API
         api_date = end_time.strftime("%d.%m.%Y")
-        result = add_client(21, f"user_{user_id}", user_id, api_date)
+        from api_extended import add_client_to_all_inbounds
+        result = add_client_to_all_inbounds(f"user_{user_id}", user_id, api_date)
         print(f"Client added: {result}")
         
         # Записываем продажу в Google Sheets

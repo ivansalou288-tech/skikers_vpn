@@ -18,7 +18,7 @@ def add_client_to_all_inbounds(username: str, tg_id: int, date: str, sub_id: str
     """
     Один общый subId на всех инбаундах: subId = {prefix}_{tg_id}.
     Разные email на каждом: {prefix}_{tg_id}_{inbound_id}.
-    Добавляет клиента только на СУЩЕСТВУЮЩИЕ инбаунды.
+    Добавляет клиента на ВСЕ СУЩЕСТВУЮЩИЕ инбаунды основного сервера.
     
     :param username: Имя пользователя (префикс для subId)
     :param tg_id: Telegram ID клиента
