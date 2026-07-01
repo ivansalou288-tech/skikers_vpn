@@ -52,6 +52,7 @@ def crypto_webhook_url() -> str:
 
 # Telegram channel for subscription check
 CHANNEL_USERNAME = "Creep_VPN"  # @username without @
+CHANNEL_ID = -1004375118528
 CHANNEL_LINK = f"https://t.me/{CHANNEL_USERNAME}"
 
 

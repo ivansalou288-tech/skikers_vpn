@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api import add_client, getSubById, check_cantfree, add_to_cantfree, dell_client, get_clients, renew_subscription, convert_timestamp_to_human_readable
 from payment_api import create_paycore_payment, get_payment_status, set_bot_instance, update_payment_message_id, try_claim_subscription_processing
 from crypto_pay_api import create_crypto_invoice, get_crypto_invoice_status, convert_rub_to_usd
-from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN, CHANNEL_USERNAME, CHANNEL_LINK
+from config import CHANNEL_ID, subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN, CHANNEL_USERNAME, CHANNEL_LINK
 
 OPERATOR_CHAT_ID = [8097905858, 1625853204]
 
@@ -546,10 +546,17 @@ def is_admin(user_id: int) -> bool:
 async def check_channel_subscription(user_id: int, bot: Bot) -> bool:
     """Проверяет подписан ли пользователь на канал"""
     try:
-        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        # Сначала пробуем получить информацию о канале
+        chat = await bot.get_chat(chat_id=CHANNEL_ID)
+        print(f"Channel info: {chat.id}, {chat.type}")
+        
+        # Проверяем подписку
+        member = await bot.get_chat_member(chat_id=chat.id, user_id=user_id)
+        print(f"Member status for user {user_id}: {member.status}")
         return member.status in ["member", "administrator", "creator"]
     except Exception as e:
         print(f"Error checking channel subscription: {e}")
+        # Если бот не имеет прав, возвращаем False
         return False
 
 # Создаем inline кнопки
