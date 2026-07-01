@@ -27,7 +27,7 @@ from payment_api import create_paycore_payment, get_payment_status, set_bot_inst
 from crypto_pay_api import create_crypto_invoice, get_crypto_invoice_status, convert_rub_to_usd
 from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN
 
-OPERATOR_CHAT_ID = 8097905858
+OPERATOR_CHAT_ID = [8097905858, 1625853204]
 
 API_BASE_URL = subscription_api_base_url()
 
@@ -1137,16 +1137,17 @@ async def success_payment_handler(message: Message):
             price_rubles = int(parts[2])
             
             # Отправляем уведомление администратору
-            await bot.send_message(
-                OPERATOR_CHAT_ID,
-                f"<tg-emoji emoji-id='5416081784641168838'>💰</tg-emoji> <b>Новая покупка!</b>\n\n"
-                f"👤 Пользователь: @{message.from_user.username} (ID: {message.from_user.id})\n"
-                f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
-                f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Цена: {price_rubles}₽\n"
-                f"<tg-emoji emoji-id='5424972470023104089'>⭐</tg-emoji> Оплата: {payment_info.total_amount} {payment_info.currency}\n\n"
-                f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> Покупка успешно завершена!",
-                parse_mode=ParseMode.HTML
-            )
+            for chat_id in OPERATOR_CHAT_ID:
+                await bot.send_message(
+                    chat_id,
+                    f"<tg-emoji emoji-id='5416081784641168838'>💰</tg-emoji> <b>Новая покупка!</b>\n\n"
+                    f"👤 Пользователь: @{message.from_user.username} (ID: {message.from_user.id})\n"
+                    f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
+                    f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Цена: {price_rubles}₽\n"
+                    f"<tg-emoji emoji-id='5424972470023104089'>⭐</tg-emoji> Оплата: {payment_info.total_amount} {payment_info.currency}\n\n"
+                    f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> Покупка успешно завершена!",
+                    parse_mode=ParseMode.HTML
+                )
             
             # Проверяем, есть ли у пользователя уже подписка
             subscription_info, status = await get_subscription_info(message.from_user.id)
@@ -1161,15 +1162,16 @@ async def success_payment_handler(message: Message):
                     end_date_str = end_time.strftime("%d.%m.%Y")
                     
                     # Обновляем уведомление администратору о продлении
-                    await bot.send_message(
-                        OPERATOR_CHAT_ID,
-                        f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена!</b>\n\n"
-                        f"👤 Пользователь: @{message.from_user.username} (ID: {message.from_user.id})\n"
-                        f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
-                        f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Новая дата: {end_date_str}\n"
-                        f"<tg-emoji emoji-id='5424972470023104089'>⭐</tg-emoji> Оплата: {payment_info.total_amount} {payment_info.currency}",
-                        parse_mode=ParseMode.HTML
-                    )
+                    for chat_id in OPERATOR_CHAT_ID:
+                        await bot.send_message(
+                            chat_id,
+                            f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена!</b>\n\n"
+                            f"👤 Пользователь: @{message.from_user.username} (ID: {message.from_user.id})\n"
+                            f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
+                            f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Новая дата: {end_date_str}\n"
+                            f"<tg-emoji emoji-id='5424972470023104089'>⭐</tg-emoji> Оплата: {payment_info.total_amount} {payment_info.currency}",
+                            parse_mode=ParseMode.HTML
+                        )
                     
                     await message.answer(
                         f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Подписка продлена!</b>\n\n"
@@ -1206,16 +1208,17 @@ async def success_payment_handler(message: Message):
                     print(f"Client added via stars payment: {result}")
                     
                     # Обновляем уведомление администратору о новой подписке
-                    await bot.send_message(
-                        OPERATOR_CHAT_ID,
-                        f"<tg-emoji emoji-id='5416081784641168838'>🆕</tg-emoji> <b>Новая подписка создана!</b>\n\n"
-                        f"👤 Пользователь: @{message.from_user.username} (ID: {message.from_user.id})\n"
-                        f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
-                        f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Действует до: {end_date_str}\n"
-                        f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Цена: {price_rubles}₽\n"
-                        f"<tg-emoji emoji-id='5424972470023104089'>⭐</tg-emoji> Оплата: {payment_info.total_amount} {payment_info.currency}",
-                        parse_mode=ParseMode.HTML
-                    )
+                    for chat_id in OPERATOR_CHAT_ID:
+                        await bot.send_message(
+                            chat_id,
+                            f"<tg-emoji emoji-id='5416081784641168838'>🆕</tg-emoji> <b>Новая подписка создана!</b>\n\n"
+                            f"👤 Пользователь: @{message.from_user.username} (ID: {message.from_user.id})\n"
+                            f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
+                            f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Действует до: {end_date_str}\n"
+                            f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Цена: {price_rubles}₽\n"
+                            f"<tg-emoji emoji-id='5424972470023104089'>⭐</tg-emoji> Оплата: {payment_info.total_amount} {payment_info.currency}",
+                            parse_mode=ParseMode.HTML
+                        )
                     
                     # Отправляем подтверждение пользователю
                     await message.answer(
@@ -1407,14 +1410,15 @@ async def crypto_check_callback(callback: types.CallbackQuery):
                     )
                     
                     # Уведомление админу
-                    await bot.send_message(
-                        OPERATOR_CHAT_ID,
-                        f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена (CryptoBot)!</b>\n\n"
-                        f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
-                        f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
-                        f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽ ({convert_rub_to_usd(price_rubles)} USDT)",
-                        parse_mode=ParseMode.HTML
-                    )
+                    for chat_id in OPERATOR_CHAT_ID:
+                        await bot.send_message(
+                            chat_id,
+                            f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена (CryptoBot)!</b>\n\n"
+                            f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
+                            f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
+                            f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽ ({convert_rub_to_usd(price_rubles)} USDT)",
+                            parse_mode=ParseMode.HTML
+                        )
                 else:
                     await callback.message.edit_text(
                         "❌ Ошибка при продлении подписки. Свяжитесь с поддержкой.",
@@ -1447,14 +1451,15 @@ async def crypto_check_callback(callback: types.CallbackQuery):
                     )
                     
                     # Уведомление админу
-                    await bot.send_message(
-                        OPERATOR_CHAT_ID,
-                        f"<tg-emoji emoji-id='5416081784641168838'>🆕</tg-emoji> <b>Новая подписка (CryptoBot)!</b>\n\n"
-                        f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
-                        f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
-                        f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽ ({convert_rub_to_usd(price_rubles)} USDT)",
-                        parse_mode=ParseMode.HTML
-                    )
+                    for chat_id in OPERATOR_CHAT_ID:
+                        await bot.send_message(
+                            chat_id,
+                            f"<tg-emoji emoji-id='5416081784641168838'>🆕</tg-emoji> <b>Новая подписка (CryptoBot)!</b>\n\n"
+                            f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
+                            f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
+                            f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽ ({convert_rub_to_usd(price_rubles)} USDT)",
+                            parse_mode=ParseMode.HTML
+                        )
                     
                 except Exception as e:
                     print(f"Error adding client via CryptoBot payment: {e}")
@@ -1602,16 +1607,17 @@ async def sbp_paid_callback(callback: types.CallbackQuery):
                             end_date_str = end_time.strftime("%d.%m.%Y")
                             
                             # Отправляем уведомление администратору о продлении
-                            await bot.send_message(
-                                OPERATOR_CHAT_ID,
-                                f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена (СБП)!</b>\n\n"
-                                f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
-                                f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
-                                f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Новая дата: {end_date_str}\n"
-                                f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽\n"
-                                f"Order ID: <code>{order_id}</code>",
-                                parse_mode=ParseMode.HTML
-                            )
+                            for chat_id in OPERATOR_CHAT_ID:
+                                await bot.send_message(
+                                    chat_id,
+                                    f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена (СБП)!</b>\n\n"
+                                    f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
+                                    f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
+                                    f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Новая дата: {end_date_str}\n"
+                                    f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽\n"
+                                    f"Order ID: <code>{order_id}</code>",
+                                    parse_mode=ParseMode.HTML
+                                )
                             
                             await callback.message.edit_text(
                                 f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Подписка продлена!</b>\n\n"
@@ -1648,16 +1654,17 @@ async def sbp_paid_callback(callback: types.CallbackQuery):
                             print(f"Client added via SBP payment: {result}")
                             
                             # Отправляем уведомление администратору о новой подписке
-                            await bot.send_message(
-                                OPERATOR_CHAT_ID,
-                                f"<tg-emoji emoji-id='5416081784641168838'>🆕</tg-emoji> <b>Новая подписка создана (СБП)!</b>\n\n"
-                                f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
-                                f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
-                                f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Действует до: {end_date_str}\n"
-                                f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Цена: {price_rubles}₽\n"
-                                f"Order ID: <code>{order_id}</code>",
-                                parse_mode=ParseMode.HTML
-                            )
+                            for chat_id in OPERATOR_CHAT_ID:
+                                await bot.send_message(
+                                    chat_id,
+                                    f"<tg-emoji emoji-id='5416081784641168838'>🆕</tg-emoji> <b>Новая подписка создана (СБП)!</b>\n\n"
+                                    f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
+                                    f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {time_months} мес.\n"
+                                    f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Действует до: {end_date_str}\n"
+                                    f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Цена: {price_rubles}₽\n"
+                                    f"Order ID: <code>{order_id}</code>",
+                                    parse_mode=ParseMode.HTML
+                                )
                             
                             # Отправляем подтверждение пользователю
                             await callback.message.edit_text(
@@ -1690,14 +1697,15 @@ async def sbp_paid_callback(callback: types.CallbackQuery):
                 )
             
             # Уведомляем оператора о подтверждении от пользователя
-            await bot.send_message(
-                OPERATOR_CHAT_ID,
-                f"<tg-emoji emoji-id='5416081784641168838'>💰</tg-emoji> <b>Пользователь подтвердил оплату СБП</b>\n\n"
-                f"Order ID: <code>{order_id}</code>\n"
-                f"Статус: {status}\n\n"
-                f"Проверьте поступление средств и активируйте подписку.",
-                parse_mode=ParseMode.HTML
-            )
+            for chat_id in OPERATOR_CHAT_ID:
+                await bot.send_message(
+                    chat_id,
+                    f"<tg-emoji emoji-id='5416081784641168838'>💰</tg-emoji> <b>Пользователь подтвердил оплату СБП</b>\n\n"
+                    f"Order ID: <code>{order_id}</code>\n"
+                    f"Статус: {status}\n\n"
+                    f"Проверьте поступление средств и активируйте подписку.",
+                    parse_mode=ParseMode.HTML
+                )
             await callback.answer("✅ Оплата подтверждена!")
             
         elif status == "pending":
@@ -1797,18 +1805,19 @@ async def paid_notify_callback(callback: types.CallbackQuery):
             ]
         )
     
-    await bot.send_message(
-        chat_id=OPERATOR_CHAT_ID,
-        text=(
-            f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Уведомление об оплате</b>\n\n"
-            f"👤 Пользователь: @{callback.from_user.username}\n"
-            f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {months_text}\n"
-            f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Сумма: {price_rubles}₽\n\n"
-            "Проверьте оплату и подтвердите:"
-        ),
-        reply_markup=operator_keyboard,
-        parse_mode=ParseMode.HTML
-    )
+    for chat_id in OPERATOR_CHAT_ID:
+        await bot.send_message(
+            chat_id=chat_id,
+            text=(
+                f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Уведомление об оплате</b>\n\n"
+                f"👤 Пользователь: @{callback.from_user.username}\n"
+                f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {months_text}\n"
+                f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Сумма: {price_rubles}₽\n\n"
+                "Проверьте оплату и подтвердите:"
+            ),
+            reply_markup=operator_keyboard,
+            parse_mode=ParseMode.HTML
+        )
 
 @router.callback_query(lambda callback: callback.data.startswith("approve_payment_"))
 async def approve_payment_callback(callback: types.CallbackQuery):
@@ -2137,14 +2146,15 @@ async def crypto_renew_check_callback(callback: types.CallbackQuery):
                 )
                 
                 # Уведомление админу
-                await bot.send_message(
-                    OPERATOR_CHAT_ID,
-                    f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена (CryptoBot)!</b>\n\n"
-                    f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
-                    f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
-                    f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽ ({convert_rub_to_usd(price_rubles)} USDT)",
-                    parse_mode=ParseMode.HTML
-                )
+                for chat_id in OPERATOR_CHAT_ID:
+                    await bot.send_message(
+                        chat_id,
+                        f"<tg-emoji emoji-id='5406756500108501710'>🔄</tg-emoji> <b>Подписка продлена (CryptoBot)!</b>\n\n"
+                        f"👤 Пользователь: @{callback.from_user.username} (ID: {callback.from_user.id})\n"
+                        f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {time_months} мес.\n"
+                        f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Оплата: {price_rubles}₽ ({convert_rub_to_usd(price_rubles)} USDT)",
+                        parse_mode=ParseMode.HTML
+                    )
             else:
                 await callback.message.edit_text(
                     "❌ Ошибка при прод��ении подписки. Свяжитесь с поддержкой.",
@@ -2213,15 +2223,16 @@ async def renew_paid_notify_callback(callback: types.CallbackQuery):
     months_text = "год" if time_months == 12 else f"{time_months} месяц{'а' if time_months > 1 and time_months < 5 else 'ев'}"
     
     # Отправляем уведомление администратору
-    await bot.send_message(
-        OPERATOR_CHAT_ID,
-        f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> <b>Запрос на продление подписки</b>\n\n"
-        f"👤 Пользователь ID: {user_tg_id}\n"
-        f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {months_text}\n"
-        f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Сумма: {price_rubles}₽\n\n"
-        "Для подтверждения продления:",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
+    for chat_id in OPERATOR_CHAT_ID:
+        await bot.send_message(
+            chat_id,
+            f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> <b>Запрос на продление подписки</b>\n\n"
+            f"👤 Пользователь ID: {user_tg_id}\n"
+            f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Продление на: {months_text}\n"
+            f"<tg-emoji emoji-id='5417924076503062111'>💰</tg-emoji> Сумма: {price_rubles}₽\n\n"
+            "Для подтверждения продления:",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
                 [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"renew_approve_{user_tg_id}_{time_months}_{price_rubles}", style="primary")],
                 [InlineKeyboardButton(text="❌ Отклонить", callback_data=f"renew_reject_{user_tg_id}", style="primary")]
             ]
