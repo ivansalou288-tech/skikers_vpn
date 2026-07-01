@@ -73,13 +73,13 @@
 
         if (subId) {
             // Construct the subscription URL
-            const subscriptionUrl = `https://www.ezh-dev.ru/sub/${subId}`;
+            const subscriptionUrl = `https://panel.ezhqpy.ru:2096/sub/${subId}`;
             
             // Encode to base64
             const base64Url = btoa(subscriptionUrl);
             
             // Construct happ deep link
-            const happDeepLink = `happ://add/${base64Url}`;
+            const happDeepLink = `happ://add/${subscriptionUrl}`;
             
             // Display manual link
             document.getElementById('manualLink').innerHTML = 
