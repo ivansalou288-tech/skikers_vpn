@@ -24,7 +24,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Константы для webhook
 BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
-OPERATOR_CHAT_ID = [1240656726, 8097905858]
+OPERATOR_CHAT_ID = [1240656726, 8097905858, 1625853204]
 WEBHOOK_PATH = "/payment/webhook"
 
 app = FastAPI(title="VPN Subscription API")
@@ -206,7 +206,7 @@ async def root():
 # ============================================================================
 
 CRYPTOBOT_BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
-CRYPTOBOT_OPERATOR_CHAT_ID = 8097905858
+CRYPTOBOT_OPERATOR_CHAT_ID = [8097905858, 1625853204]
 RUB_TO_USD_RATE = 70
 
 def end_date_from_subscription_result(subscription_result, fallback_end_date_str: str) -> str:
@@ -265,7 +265,13 @@ async def send_crypto_notifications(user_id: int, username: str, time_months: in
             f"✅ Подписка {'продлена' if is_renewal else 'создана'} автоматически"
         )
         
-        await bot.send_message(chat_id=CRYPTOBOT_OPERATOR_CHAT_ID, text=operator_message, parse_mode=ParseMode.HTML)
+        # Отправляем всем операторам
+        for chat_id in CRYPTOBOT_OPERATOR_CHAT_ID:
+            try:
+                await bot.send_message(chat_id=chat_id, text=operator_message, parse_mode=ParseMode.HTML)
+            except Exception as e:
+                print(f"[CryptoBot] Ошибка отправки уведомления оператору {chat_id}: {e}")
+        
         await bot.session.close()
     except Exception as e:
         print(f"[CryptoBot] Ошибка отправки уведомлений: {e}")

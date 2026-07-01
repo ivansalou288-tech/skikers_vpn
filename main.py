@@ -539,7 +539,7 @@ async def send_expiration_reminder(tg_id: int, reminder_type: str, expiry_date: 
 
 # Проверка на админа
 def is_admin(user_id: int) -> bool:
-    return user_id == OPERATOR_CHAT_ID
+    return user_id in OPERATOR_CHAT_ID
 
 # Создаем inline кнопки
 subscription_btn = InlineKeyboardButton(text="Подписка", callback_data="subscription", style="primary", icon_custom_emoji_id='5296369303661067030')
