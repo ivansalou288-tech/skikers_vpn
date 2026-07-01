@@ -335,7 +335,7 @@ async def broadcast_to_all_users(message_text: str):
     return {"success": success_count, "errors": error_count}
 
 # Код бота
-TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
+TOKEN = "8362389423:AAGxiH6EvINfj7SdD5ASLG_A3F0H0akfF8Q"
 
 bot = Bot(token=TOKEN)
 router = Router()
