@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from aiogram.types import LabeledPrice, Message, PreCheckoutQuery
+from aiohttp.streams import EMPTY_PAYLOAD
 from botlogic import payment_keyboard 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -650,14 +651,13 @@ async def start(message: types.Message):
             # Пользователь не подписан на канал
             subscribe_keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="📢 Подписаться на канал", url=CHANNEL_LINK, style="primary")],
-                    [InlineKeyboardButton(text="✅ Проверить подписку", callback_data="check_subscription", style="success")]
+                    [InlineKeyboardButton(text="Подписаться на канал", url=CHANNEL_LINK, style="primary", icon_custom_emoji_id=5771695636411847302)],
+                    [InlineKeyboardButton(text="Проверить подписку", callback_data="check_subscription", style="success", icon_custom_emoji_id=5776375003280838798)]
                 ]
             )
             await message.answer(
-                "👋 Привет! Для использования бота необходимо подписаться на наш канал.\n\n"
-                f"📢 <b>Канал:</b> @{CHANNEL_USERNAME}\n\n"
-                "После подписки нажмите кнопку ниже для проверки:",
+                '<tg-emoji emoji-id="5994750571041525522">👋</tg-emoji> Привет! Для использования бота необходимо подписаться на наш канал.\n\n' +
+                '<tg-emoji emoji-id="5775937998948404844">➕</tg-emoji> После подписки нажмите кнопку ниже для проверки:',
                 reply_markup=subscribe_keyboard,
                 parse_mode=ParseMode.HTML
             )
