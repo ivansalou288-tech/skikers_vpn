@@ -26,7 +26,7 @@ PAYCORE_API_KEY ='paycore__kzCrJ9vpN0pF7dkM%lc2D5V7/rKfbbV^ftafi%PXhH^='
 PAYCORE_API_URL = "https://pay.pay-core.ru/api/init"
 WEBHOOK_URL = webhook_url()
 BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
-OPERATOR_CHAT_ID = [1240656726, 1401086794]
+OPERATOR_CHAT_ID = [1240656726, 8097905858]
 
 # Настройка БД
 Base = declarative_base()
