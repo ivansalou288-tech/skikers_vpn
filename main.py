@@ -1432,9 +1432,6 @@ async def crypto_check_callback(callback: types.CallbackQuery):
                     result = add_client_to_all_inbounds(f"user_{callback.from_user.id}", callback.from_user.id, api_date)
                     print(f"Client added via CryptoBot payment: {result}")
                     
-                    # Записываем продажу в Google Sheets
-                    add_vpn_sale(callback.from_user.id, callback.from_user.username, time_months, price_rubles)
-                    
                     await callback.message.edit_text(
                         f"<tg-emoji emoji-id='5416081784641168838'>✅</tg-emoji> <b>Оплата успешно завершена!</b>\n\n"
                         f"<tg-emoji emoji-id='5440621591387980068'>⏰</tg-emoji> Период: {months_text}\n"
