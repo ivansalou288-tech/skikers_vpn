@@ -651,8 +651,8 @@ async def start(message: types.Message):
             # Пользователь не подписан на канал
             subscribe_keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="Подписаться на канал", url=CHANNEL_LINK, style="primary", icon_custom_emoji_id=5771695636411847302)],
-                    [InlineKeyboardButton(text="Проверить подписку", callback_data="check_subscription", style="success", icon_custom_emoji_id=5776375003280838798)]
+                    [InlineKeyboardButton(text="Подписаться на канал", url=CHANNEL_LINK, style="primary", icon_custom_emoji_id="5771695636411847302")],
+                    [InlineKeyboardButton(text="Проверить подписку", callback_data="check_subscription", style="success", icon_custom_emoji_id="5776375003280838798")]
                 ]
             )
             await message.answer(
