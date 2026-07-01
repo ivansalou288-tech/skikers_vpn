@@ -24,7 +24,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Константы для webhook
 BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
-OPERATOR_CHAT_ID = [1240656726, 1401086794]
+OPERATOR_CHAT_ID = [1240656726, 8097905858]
 WEBHOOK_PATH = "/payment/webhook"
 
 app = FastAPI(title="VPN Subscription API")
@@ -206,7 +206,7 @@ async def root():
 # ============================================================================
 
 CRYPTOBOT_BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
-CRYPTOBOT_OPERATOR_CHAT_ID = 1240656726
+CRYPTOBOT_OPERATOR_CHAT_ID = 8097905858
 RUB_TO_USD_RATE = 70
 
 def end_date_from_subscription_result(subscription_result, fallback_end_date_str: str) -> str:

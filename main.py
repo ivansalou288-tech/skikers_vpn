@@ -27,7 +27,7 @@ from payment_api import create_paycore_payment, get_payment_status, set_bot_inst
 from crypto_pay_api import create_crypto_invoice, get_crypto_invoice_status, convert_rub_to_usd
 from config import subscription_api_base_url, PANEL_DOMAIN, SUB_PAGE_PATH, PUBLIC_DOMAIN
 
-OPERATOR_CHAT_ID = 1240656726
+OPERATOR_CHAT_ID = 8097905858
 
 API_BASE_URL = subscription_api_base_url()
 
