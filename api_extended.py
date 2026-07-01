@@ -9,6 +9,7 @@ from api import (
     panel_session,
     panel_del_client_by_email,
     generate_sub_prefix,
+    panel_add_client_to_inbounds,
 )
 import json
 import secrets
@@ -17,8 +18,7 @@ import secrets
 def add_client_to_all_inbounds(username: str, tg_id: int, date: str, sub_id: str = None):
     """
     Один общый subId на всех инбаундах: subId = {prefix}_{tg_id}.
-    Разные email на каждом: {prefix}_{tg_id}_{inbound_id}.
-    Добавляет клиента на ВСЕ СУЩЕСТВУЮЩИЕ инбаунды основного сервера.
+    Добавляет клиента на ВСЕ СУЩЕСТВУЮЩИЕ инбаунды основного сервера одним запросом.
     
     :param username: Имя пользователя (префикс для subId)
     :param tg_id: Telegram ID клиента
@@ -50,27 +50,64 @@ def add_client_to_all_inbounds(username: str, tg_id: int, date: str, sub_id: str
     
     existing_inbound_ids = [inbound.get("id") for inbound in clients_data.get("obj", [])]
     
-    results = []
-    successfully_added = 0
-    for inbound_id in existing_inbound_ids:
-        print(f"[API] Adding client to inbound {inbound_id} subId={universal_sub_id}...")
-        result = add_client(inbound_id, sub_prefix, tg_id, date)
-        results.append({"inbound_id": inbound_id, "result": result})
-        if result.get("success"):
-            print(f"[API] Successfully added client to inbound {inbound_id}")
-            successfully_added += 1
-        else:
-            print(f"[API] Failed to add client to inbound {inbound_id}: {result}")
-
-    # Считаем операцию успешной если клиент добавлен хотя бы на один инбаунд
-    success = successfully_added > 0
-
+    if not existing_inbound_ids:
+        return {
+            "success": False,
+            "message": "No inbounds available",
+            "subId": universal_sub_id,
+            "client_prefix": sub_prefix,
+            "results": [],
+        }
+    
+    # Определяем протокол первого инбаунда
+    target_inbound = None
+    for inbound in clients_data.get("obj", []):
+        if inbound.get("id") == existing_inbound_ids[0]:
+            target_inbound = inbound
+            break
+    
+    if not target_inbound:
+        return {
+            "success": False,
+            "message": "Failed to determine protocol",
+            "subId": universal_sub_id,
+            "client_prefix": sub_prefix,
+            "results": [],
+        }
+    
+    protocol = target_inbound.get("protocol", "vless")
+    
+    # Подготавливаем данные клиента
+    from api import convert_date_to_timestamp
+    expiry_timestamp = convert_date_to_timestamp(date)
+    if isinstance(expiry_timestamp, str):
+        return {"error": expiry_timestamp}
+    
+    client_data = {
+        "email": f"{sub_prefix}_{tg_id}",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": expiry_timestamp,
+        "enable": True,
+        "tgId": tg_id,
+        "subId": universal_sub_id,
+        "comment": "",
+        "reset": 0,
+    }
+    
+    print(f"[API] Adding client to all inbounds {existing_inbound_ids} with subId={universal_sub_id}")
+    print(f"[API] Client data: {json.dumps(client_data, indent=2)}")
+    
+    # Добавляем клиента одним запросом на все инбаунды
+    result = panel_add_client_to_inbounds(client_data, existing_inbound_ids, protocol)
+    
     return {
-        "success": success,
-        "message": f"Client added to {successfully_added}/{len(existing_inbound_ids)} inbounds" if success else "Failed to add client to any inbound",
+        "success": result.get("success", False),
+        "message": result.get("msg", "Client creation completed"),
         "subId": universal_sub_id,
         "client_prefix": sub_prefix,
-        "results": results,
+        "inbound_ids": existing_inbound_ids,
+        "details": result,
     }
 
 def renew_subscription_all_inbounds(tg_id: int, additional_months: int):

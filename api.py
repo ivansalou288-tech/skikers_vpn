@@ -382,6 +382,51 @@ def panel_add_inbound_client(session, inbound_id, client_dict, protocol):
         return {"success": False, "msg": r.text}
 
 
+def panel_add_client_to_inbounds(client_dict, inbound_ids, protocol):
+    """Add client to multiple inbounds using new /panel/api/clients/add endpoint"""
+    # Подготавливаем клиента для нового API
+    client = dict(client_dict)
+    
+    # Убеждаемся, что есть все необходимые поля
+    if "id" not in client and protocol == "vless":
+        client["id"] = client_dict.get("id", secrets.token_urlsafe(16))
+    if "password" not in client and protocol == "trojan":
+        client["password"] = secrets.token_urlsafe(16)
+    
+    # Для VLESS не нужна password, для Trojan не нужен id
+    if protocol == "vless" and "password" in client:
+        del client["password"]
+    if protocol == "trojan" and "id" in client:
+        del client["id"]
+    
+    # Новый API endpoint: /panel/api/clients/add
+    # Body format: {"client": {...}, "inboundIds": [1, 2, 3, 4]}
+    body = {
+        "client": client,
+        "inboundIds": inbound_ids
+    }
+    
+    url = f"{BASE_URL}/panel/api/clients/add"
+    print(f"[API] POST запрос (новый API): {url}")
+    print(f"[API] Body: {json.dumps(body, indent=2)}")
+    
+    headers = get_headers()
+    r = requests.post(url, json=body, headers=headers, verify=False)
+    
+    print(f"[API] Ответ панели - статус: {r.status_code}")
+    print(f"[API] Ответ панели - содержимое: {r.text}")
+    
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}", "msg": r.text}
+    
+    try:
+        result = r.json()
+        print(f"[API] Парсед JSON ответ: {json.dumps(result, indent=2)}")
+        return result
+    except json.JSONDecodeError:
+        return {"success": False, "msg": r.text}
+
+
 def panel_update_inbound_client(session, inbound_id, protocol, route_client_id, settings_obj, updated_client):
     """Обновляет клиента через /inbounds/{id}/updateClient"""
     client_email = updated_client.get("email")
