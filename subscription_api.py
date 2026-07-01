@@ -375,12 +375,6 @@ async def crypto_webhook(request: Request):
                 subscription_result = add_client_to_all_inbounds(f"user_{user_id}", user_id, end_date_str)
                 sub_id = subscription_result.get("subId") if subscription_result else None
             
-            try:
-                from api_sheets import add_vpn_sale
-                add_vpn_sale(user_id, f"user_{user_id}", time_months, amount_rub)
-            except Exception as e:
-                print(f"[CryptoBot Webhook] Ошибка записи в Google Sheets: {e}")
-            
             await send_crypto_notifications(user_id, f"user_{user_id}", time_months, amount_rub, is_renewal, end_date_str, subscription_result, sub_id)
             
             print(f"[CryptoBot Webhook] Платёж обработан успешно!")
@@ -555,14 +549,6 @@ async def payment_webhook(request: Request):
                 subscription_result = add_client_to_all_inbounds(username, user_id, end_date_str)
             
             print(f"[PayCore Webhook] Subscription result: {subscription_result}")
-            
-            # Записываем в Google Sheets
-            try:
-                from api_sheets import add_vpn_sale
-                add_vpn_sale(user_id, username, time_months, final_amount or amount)
-                print(f"[PayCore Webhook] Sale recorded in sheets")
-            except Exception as e:
-                print(f"[PayCore Webhook] Failed to record sale: {e}")
             
             # Отправляем уведомления
             await send_payment_notifications(payment, data, subscription_result, end_date_str)

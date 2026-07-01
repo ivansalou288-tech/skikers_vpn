@@ -14,7 +14,6 @@ import sys
 # Добавляем путь для импорта api.py
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api import add_client, renew_subscription
-from api_sheets import add_vpn_sale
 from config import webhook_url
 
 # Импортируем aiogram для отправки сообщений
