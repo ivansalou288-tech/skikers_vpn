@@ -191,7 +191,33 @@ def getSubById(telegram_id):
     
     # Search through all inbounds for clients with matching tgId
     for inbound in inbounds:
-        # Check if this inbound has settings
+        # Сначала проверяем clientStats (новый формат API)
+        if 'clientStats' in inbound:
+            client_stats = inbound['clientStats']
+            
+            for client in client_stats:
+                # Проверяем по subId (содержит tg_id)
+                sub_id = client.get('subId', '')
+                # subId формат: prefix_tgId, извлекаем tgId
+                if '_' in sub_id:
+                    parts = sub_id.rsplit('_', 1)
+                    if len(parts) == 2 and parts[1].isdigit():
+                        client_tgId = int(parts[1])
+                        if client_tgId == telegram_id:
+                            return {
+                                "success": True,
+                                "subId": client.get('subId'),
+                                "client_info": {
+                                    "id": client.get('id'),
+                                    "email": client.get('email'),
+                                    "enable": client.get('enable'),
+                                    "expiryTime": client.get('expiryTime'),
+                                    "totalGB": client.get('total')
+                                },
+                                "inbound_id": inbound.get('id')
+                            }
+        
+        # Проверяем старый формат в settings.clients
         if 'settings' in inbound:
             settings = inbound['settings']
             
@@ -222,7 +248,7 @@ def getSubById(telegram_id):
                                 "expiryTime": client.get('expiryTime'),
                                 "totalGB": client.get('totalGB')
                             },
-                            "inbound_id": inbound.get('id')  # Добавляем inbound_id для удаления
+                            "inbound_id": inbound.get('id')
                         }
     
     # If no client found with matching tgId
