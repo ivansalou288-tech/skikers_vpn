@@ -23,7 +23,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Константы для webhook
-BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"
+BOT_TOKEN = '8362389423:AAGxiH6EvINfj7SdD5ASLG_A3F0H0akfF8Q'
 OPERATOR_CHAT_ID = [1240656726, 8097905858, 1625853204]
 WEBHOOK_PATH = "/payment/webhook"
 
