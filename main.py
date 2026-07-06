@@ -610,7 +610,21 @@ contacts_management_keyboard = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_panel", style="primary")]
     ]
 )
-
+async def check_channel_subscription(user_id: int, bot: Bot) -> bool:
+    """Проверяет подписан ли пользователь на канал"""
+    try:
+        # Сначала пробуем получить информацию о канале
+        chat = await bot.get_chat(chat_id=CHANNEL_ID)
+        print(f"Channel info: {chat.id}, {chat.type}")
+        
+        # Проверяем подписку
+        member = await bot.get_chat_member(chat_id=chat.id, user_id=user_id)
+        print(f"Member status for user {user_id}: {member.status}")
+        return member.status in ["member", "administrator", "creator"]
+    except Exception as e:
+        print(f"Error checking channel subscription: {e}")
+        # Если бот не имеет прав, возвращаем False
+        return False
 @router.message(Command("start"))
 async def start(message: types.Message):
     # Добавляем/обновляем пользователя в базе данных
