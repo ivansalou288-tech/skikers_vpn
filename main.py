@@ -293,6 +293,11 @@ async def get_subscription_info(user_tg_id: int):
                     "has_subscription"
                 )
             else:
+                # Подписка истекла - удаляем клиента
+                print(f"[Subscription] Deleting expired client {user_tg_id}")
+                dell_result = dell_client(user_tg_id)
+                print(f"[Subscription] Delete result: {dell_result}")
+                
                 return (
                     f"<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Подписка истекла</b>\n\n"
                     f"<tg-emoji emoji-id='5440621591387980068'>📅</tg-emoji> Дата окончания: <b>{expiry_date}</b>\n"
