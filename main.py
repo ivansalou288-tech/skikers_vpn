@@ -444,9 +444,9 @@ async def add_referral_days_to_user(user_id: int, days: int):
             api_date = end_time.strftime("%d.%m.%Y")
             
             from api_extended import add_client_to_all_inbounds
-            from api import dell_client
+            from api import dell_client_from_all_inbounds
             # Удаляем старого клиента перед созданием нового
-            dell_client(user_id)
+            dell_client_from_all_inbounds(user_id)
             add_result = add_client_to_all_inbounds(f"user_{user_id}", user_id, api_date)
             pass
     except Exception as e:
@@ -1045,9 +1045,9 @@ async def trial_period_callback(callback: types.CallbackQuery):
             api_date = end_time.strftime("%d.%m.%Y")
             print(f"[TRIAL] Creating trial client for user {user_tg_id} with expiry {api_date}")
             from api_extended import add_client_to_all_inbounds
-            from api import dell_client
+            from api import dell_client_from_all_inbounds
             # Удаляем старого клиента перед созданием нового
-            dell_client(user_tg_id)
+            dell_client_from_all_inbounds(user_tg_id)
             client_result = add_client_to_all_inbounds(user_username or f"user_{user_tg_id}", user_tg_id, api_date)
             print(f"[TRIAL] Client creation result: {client_result}")
             
@@ -1264,9 +1264,9 @@ async def success_payment_handler(message: Message):
                 try:
                     api_date = end_time.strftime("%d.%m.%Y")
                     from api_extended import add_client_to_all_inbounds
-                    from api import dell_client
+                    from api import dell_client_from_all_inbounds
                     # Удаляем старого клиента перед созданием нового
-                    dell_client(message.from_user.id)
+                    dell_client_from_all_inbounds(message.from_user.id)
                     result = add_client_to_all_inbounds(f"user_{message.from_user.id}", message.from_user.id, api_date)
                     print(f"Client added via stars payment: {result}")
                     
@@ -1496,9 +1496,9 @@ async def crypto_check_callback(callback: types.CallbackQuery):
                 try:
                     api_date = end_time.strftime("%d.%m.%Y")
                     from api_extended import add_client_to_all_inbounds
-                    from api import dell_client
+                    from api import dell_client_from_all_inbounds
                     # Удаляем старого клиента перед созданием нового
-                    dell_client(callback.from_user.id)
+                    dell_client_from_all_inbounds(callback.from_user.id)
                     result = add_client_to_all_inbounds(f"user_{callback.from_user.id}", callback.from_user.id, api_date)
                     print(f"Client added via CryptoBot payment: {result}")
                     
@@ -1716,9 +1716,9 @@ async def sbp_paid_callback(callback: types.CallbackQuery):
                         try:
                             api_date = end_time.strftime("%d.%m.%Y")
                             from api_extended import add_client_to_all_inbounds
-                            from api import dell_client
+                            from api import dell_client_from_all_inbounds
                             # Удаляем старого клиента перед созданием нового
-                            dell_client(callback.from_user.id)
+                            dell_client_from_all_inbounds(callback.from_user.id)
                             result = add_client_to_all_inbounds(f"user_{callback.from_user.id}", callback.from_user.id, api_date)
                             print(f"Client added via SBP payment: {result}")
                             
@@ -1929,9 +1929,9 @@ async def approve_payment_callback(callback: types.CallbackQuery):
         # Конвертируем дату в формат ДД.ММ.ГГГГ для API
         api_date = end_time.strftime("%d.%m.%Y")
         from api_extended import add_client_to_all_inbounds
-        from api import dell_client
+        from api import dell_client_from_all_inbounds
         # Удаляем старого клиента перед созданием нового
-        dell_client(user_id)
+        dell_client_from_all_inbounds(user_id)
         result = add_client_to_all_inbounds(f"user_{user_id}", user_id, api_date)
         print(f"Client added: {result}")
     except Exception as e:
