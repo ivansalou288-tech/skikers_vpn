@@ -305,16 +305,28 @@ async def get_subscription_info(user_tg_id: int):
                     "no_subscription"
                 )
         else:
-            return (
-                f"<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Подписка не найдена</b>\n\n"
-                f"<tg-emoji emoji-id='5416081784641168838'>🛒</tg-emoji> Оформите подписку для использования VPN.",
-                "no_subscription"
-            )
+            # Если клиент не найден - это нормальная ситуация (удален или не существует)
+            error_msg = result.get('error', '')
+            if 'No client found' in error_msg:
+                return (
+                    f"<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Подписка не найдена</b>\n\n"
+                    f"<tg-emoji emoji-id='5416081784641168838'>🛒</tg-emoji> Оформите подписку для использования VPN.",
+                    "no_subscription"
+                )
+            else:
+                # Другая ошибка API
+                print(f"[Subscription] API Error: {error_msg}")
+                return (
+                    f"<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Подписка не найдена</b>\n\n"
+                    f"<tg-emoji emoji-id='5416081784641168838'>🛒</tg-emoji> Оформите подписку для использования VPN.",
+                    "no_subscription"
+                )
     except Exception as e:
+        print(f"[Subscription] Exception: {e}")
         return (
-            f"<tg-emoji emoji-id='5411225014148014586'>⚠️</tg-emoji> <b>Ошибка проверки подписки</b>\n\n"
-            f"Попробуйте позже или обратитесь в поддержку.",
-            "error"
+            f"<tg-emoji emoji-id='5411225014148014586'>❌</tg-emoji> <b>Подписка не найдена</b>\n\n"
+            f"<tg-emoji emoji-id='5416081784641168838'>🛒</tg-emoji> Оформите подписку для использования VPN.",
+            "no_subscription"
         )
 
 async def broadcast_to_all_users(message_text: str):

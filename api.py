@@ -189,33 +189,48 @@ def getSubById(telegram_id):
     # Get the list of inbounds
     inbounds = clients_data.get('obj', [])
     
+    print(f"[getSubById] Searching for telegram_id: {telegram_id}")
+    
     # Search through all inbounds for clients with matching tgId
     for inbound in inbounds:
         # Сначала проверяем clientStats (новый формат API)
         if 'clientStats' in inbound:
             client_stats = inbound['clientStats']
+            print(f"[getSubById] Checking inbound {inbound.get('id')} with {len(client_stats)} clientStats")
             
             for client in client_stats:
                 # Проверяем по subId (содержит tg_id)
                 sub_id = client.get('subId', '')
+                email = client.get('email', '')
+                
+                print(f"[getSubById] Checking client: subId={sub_id}, email={email}")
+                
                 # subId формат: prefix_tgId, извлекаем tgId
                 if '_' in sub_id:
                     parts = sub_id.rsplit('_', 1)
-                    if len(parts) == 2 and parts[1].isdigit():
-                        client_tgId = int(parts[1])
-                        if client_tgId == telegram_id:
-                            return {
-                                "success": True,
-                                "subId": client.get('subId'),
-                                "client_info": {
-                                    "id": client.get('id'),
-                                    "email": client.get('email'),
-                                    "enable": client.get('enable'),
-                                    "expiryTime": client.get('expiryTime'),
-                                    "totalGB": client.get('total')
-                                },
-                                "inbound_id": inbound.get('id')
-                            }
+                    if len(parts) == 2:
+                        # Пытаемся преобразовать последнюю часть в число
+                        try:
+                            client_tgId = int(parts[1])
+                            print(f"[getSubById] Extracted tgId from subId: {client_tgId}")
+                            if client_tgId == telegram_id:
+                                print(f"[getSubById] Found matching client!")
+                                return {
+                                    "success": True,
+                                    "subId": client.get('subId'),
+                                    "client_info": {
+                                        "id": client.get('id'),
+                                        "email": client.get('email'),
+                                        "enable": client.get('enable'),
+                                        "expiryTime": client.get('expiryTime'),
+                                        "totalGB": client.get('total')
+                                    },
+                                    "inbound_id": inbound.get('id')
+                                }
+                        except ValueError:
+                            # Если не число, пропускаем
+                            print(f"[getSubById] Could not convert {parts[1]} to int")
+                            pass
         
         # Проверяем старый формат в settings.clients
         if 'settings' in inbound:
@@ -251,6 +266,7 @@ def getSubById(telegram_id):
                             "inbound_id": inbound.get('id')
                         }
     
+    print(f"[getSubById] No client found for telegram_id: {telegram_id}")
     # If no client found with matching tgId
     return {"error": f"No client found with tgId: {telegram_id}"}
 
