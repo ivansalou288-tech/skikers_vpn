@@ -1537,7 +1537,7 @@ async def process_sbp_payment(message, user_id, username, time_months, price_rub
     
     # Если пользователь - оператор, меняем цену на 1 рубль для тестирования
     if user_id in OPERATOR_IDS:
-        price_rubles = 1
+        price_rubles = 10
         print(f"[BOT] Operator detected, setting test price: 1 ruble")
     
     # Формируем текст времени
