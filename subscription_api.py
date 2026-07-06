@@ -378,6 +378,10 @@ async def crypto_webhook(request: Request):
                 sub_id = subscription_result.get("subId") if subscription_result else None
             else:
                 from api_extended import add_client_to_all_inbounds
+                from api import dell_client
+                # Удаляем старого клиента перед созданием нового
+                print(f"[CryptoBot Webhook] Deleting old client {user_id} before creating new one")
+                dell_client(user_id)
                 subscription_result = add_client_to_all_inbounds(f"user_{user_id}", user_id, end_date_str)
                 sub_id = subscription_result.get("subId") if subscription_result else None
             
@@ -552,6 +556,10 @@ async def payment_webhook(request: Request):
                 end_date_str = end_date_from_subscription_result(subscription_result, end_date_str)
             else:
                 from api_extended import add_client_to_all_inbounds
+                from api import dell_client
+                # Удаляем старого клиента перед созданием нового
+                print(f"[PayCore Webhook] Deleting old client {user_id} before creating new one")
+                dell_client(user_id)
                 subscription_result = add_client_to_all_inbounds(username, user_id, end_date_str)
             
             print(f"[PayCore Webhook] Subscription result: {subscription_result}")
