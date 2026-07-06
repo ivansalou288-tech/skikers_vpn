@@ -22,7 +22,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Получаем токен из переменной окружения или используем дефолтный
-PAYCORE_API_KEY ='paycore__kzCrJ9vpN0pF7dkM%lc2D5V7/rKfbbV^ftafi%PXhH^='
+PAYCORE_API_KEY ='paycore__b$HSSzxpr9cu7ZhoxH4cf165HRYRxii/LH49Jb9lyc8='
 PAYCORE_API_URL = "https://pay.pay-core.ru/api/init"
 WEBHOOK_URL = webhook_url()
 BOT_TOKEN = "8358697144:AAGppsqXjG9S08nGLUpghL-jUfTz9H4gj58"

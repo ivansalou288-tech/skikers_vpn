@@ -543,21 +543,7 @@ def is_admin(user_id: int) -> bool:
     return user_id in OPERATOR_CHAT_ID
 
 
-async def check_channel_subscription(user_id: int, bot: Bot) -> bool:
-    """Проверяет подписан ли пользователь на канал"""
-    try:
-        # Сначала пробуем получить информацию о канале
-        chat = await bot.get_chat(chat_id=CHANNEL_ID)
-        print(f"Channel info: {chat.id}, {chat.type}")
-        
-        # Проверяем подписку
-        member = await bot.get_chat_member(chat_id=chat.id, user_id=user_id)
-        print(f"Member status for user {user_id}: {member.status}")
-        return member.status in ["member", "administrator", "creator"]
-    except Exception as e:
-        print(f"Error checking channel subscription: {e}")
-        # Если бот не имеет прав, возвращаем False
-        return False
+ 
 
 # Создаем inline кнопки
 subscription_btn = InlineKeyboardButton(text="Подписка", callback_data="subscription", style="primary", icon_custom_emoji_id='5296369303661067030')
@@ -1533,7 +1519,7 @@ async def process_sbp_payment(message, user_id, username, time_months, price_rub
     - is_renewal: флаг продления (True/False)
     """
     # Список ID операторов (для специальной цены 1 рубль)
-    OPERATOR_IDS = [8489038592, 1401086794]
+    OPERATOR_IDS = [8929791739 ]
     
     # Если пользователь - оператор, меняем цену на 1 рубль для тестирования
     if user_id in OPERATOR_IDS:
